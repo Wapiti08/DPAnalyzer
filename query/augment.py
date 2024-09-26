@@ -19,7 +19,10 @@ node:
         version: string
         {}
 
-
+edge:
+    release
 
  '''
+
+
 
