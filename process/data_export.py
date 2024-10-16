@@ -12,10 +12,6 @@ def export_to_csv(tx):
     query = "CALL apoc.export.csv.all('graph_metric.csv', {delimiter: ','})"
     tx.run(query)
 
-# def export_to_json(tx):
-#     query = "CALL apoc.export.json.all('graph_metric.json', {})"
-#     tx.run(query)
-
 def export_to_graphml(tx):
     query = "CALL apoc.export.graphml.all('graph_no_metric.graphml', {})"
     tx.run(query)
