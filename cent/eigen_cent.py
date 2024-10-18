@@ -24,4 +24,25 @@ sever_score_map = {
     "LOW":1
 }
 
+class EigenCent:
+    def __init__(self,):
+    
+    def _sever_map(self, sev_score_map_dict):
+    
+    def _fresh_score(self,):
+
+
+
+    def _quan_attrs(self,):
+        ''' initialize quantify attributes of nodes
+        
+        '''
+
+    def cal_weighted_eigen_cent(self, nodes, edges, max_iterations=100, tolerance=1e-6):
+        '''
+        
+        '''
+
+
+
 # normalize the freshness with min-max normalization
