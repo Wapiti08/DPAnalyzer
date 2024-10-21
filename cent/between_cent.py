@@ -17,32 +17,54 @@ class BetCent:
         self.edges = edges
     
     def bfs_shortest_paths(self, graph, start_node):
-        distances = {start_node:0}
-        paths = {start_node: [start_node]}
+        ''' BFS to find shortest paths in a directed graph
+        
+        '''
+        
+        distances = {start_node:0 for node in graph}
+        # track all shorted paths to each node
+        paths = {node: [] for node in graph}
+        distances[start_node] = 0
+        paths[start_node] = [[start_node]]
+
         queue = deque([start_node])
 
         while queue:
             # record current node and distance of current node
-            current = queue.popleft()
-            cur_dist = distances[current]
+            node = queue.popleft()
 
-            for ngb in graph.get(current, []):
-                if ngb not in distances:
-                    distances[ngb] = cur_dist + 1
-                    paths[ngb] = paths[current] + [ngb]
+            for ngb in graph[node]:
+                if distances[ngb] == float("inf"):
+                    distances[ngb] = distances[node] + 1
                     queue.append(ngb)
-        
+                    paths[ngb] = [path + [ngb] for path in paths[node]]
+                elif distances[ngb] == distances[node] + 1:
+                    # add more paths of the same shortest length
+                    paths[ngb].extend([path + [ngb] for path in paths[node]]) 
+
         return distances, paths
     
-    def cal_between_cent(self, ):
+    def cal_between_cent(self, max_iters=100, tolerance=1e-6):
+        # create adj list and extract node weights
         graph = {node: [] for node in self.nodes}
         for source, target, _ in self.edges:
             graph[source].append(target)
-            graph[target].append(source)
+            # graph[target].append(source)
         
         between_cent = {node: 0 for node in self.nodes}
 
         # iterate over all pairs of nodes and count shortest 
         # paths that pass through each node
-        
+        for start in self.nodes:
+            distances, paths = self.bfs_shortest_paths(graph, start)
+
+            for end in self.nodes:
+                if end != start and end in paths:
+                    total_paths = len(paths[end])
+                    for node in paths[end]:
+                        if node != start and node != end:
+                            between_cent[node] += 1 / total_paths
+
+        return between_cent
+    
 

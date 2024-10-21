@@ -25,12 +25,20 @@ sever_score_map = {
 }
 
 class EigenCent:
-    def __init__(self,):
+    ''' calculate eigenvector centraility for directed graphs, only consider incoming edges
+    
+    '''
+    def __init__(self, nodes, edges):
+        self.nodes = nodes
+        self.edges = edges
+
     
     def _sever_map(self, sev_score_map_dict):
     
     def _fresh_score(self,):
 
+        
+        # normalize the freshness with min-max normalization
 
 
     def _quan_attrs(self,):
@@ -42,7 +50,36 @@ class EigenCent:
         '''
         
         '''
+        graph = {node: [] for node in nodes}
+        weights = {node: float(attributes.get('weight', 1)) for node, attributes in edges.items()}
 
+        for source, target, _ in edges:
+            # only consider incoming edges for eigenvector
+            graph[target].append(source)
 
+        # initialize centrailities
+        centrality = {node:0.0 for node in nodes}
 
-# normalize the freshness with min-max normalization
+        # update centrailities as per iteration
+        for _ in range(max_iterations):
+            new_centrality = {node: 0.0 for node in nodes}
+
+            for node in nodes:
+                for neighbor in graph[node]:
+                    new_centrality[node] += centrality[neighbor] * weights[neighbor]
+        
+            # normalize the centralities
+            norm = sum(new_centrality.values())    
+            if norm == 0:
+                break
+            new_centrality = {node: val / norm for node, val in new_centrality.items()}
+            
+            # check for convergence
+            if all(abs(new_centrality[node] - centrality[node]) < tolerance for node in nodes):
+                break
+        
+            centrality = new_centrality
+
+        return centrality
+    
+
