@@ -46,7 +46,7 @@ class BetCent:
     
     def cal_between_cent(self, max_iters=100, tolerance=1e-6):
         # create adj list and extract node weights
-        graph = {node: [] for node in self.nodes}
+        graph = {node_id: [] for node_id, node in self.nodes.items()}
         for source, target, _ in self.edges:
             graph[source].append(target)
             # graph[target].append(source)
@@ -55,7 +55,7 @@ class BetCent:
 
         # iterate over all pairs of nodes and count shortest 
         # paths that pass through each node
-        for start in self.nodes:
+        for start in self.nodes.keys():
             distances, paths = self.bfs_shortest_paths(graph, start)
 
             for end in self.nodes:
@@ -68,3 +68,5 @@ class BetCent:
         return between_cent
     
 
+if __name__ == "__main__":
+    pass
