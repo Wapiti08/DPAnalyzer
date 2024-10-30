@@ -77,13 +77,14 @@ class EigenCent:
             for neighbor in neighbors:
                 G.add_edge(node, neighbor)
 
-        for id, node in self.nodes.items():
-            data.ip.append(id)
-            data.freshness.append(node["freshness"])
-            data.popularity.append(node["POPULARITY_1_YEAR"])
-            data.speed.append(node["SPEED"])
-            data.severity.append(node["severity"])
-            data.degree.append(G.in_degree(node))
+        for nid, node in self.nodes.items():
+            data["id"].append(nid)
+            # replace dict freshness with freshness_score
+            data["freshness"].append(node["freshness_score"])
+            data["popularity"].append(node["POPULARITY_1_YEAR"])
+            data["speed"].append(node["SPEED"])
+            data["severity"].append(node["severity"])
+            data["indegree"].append(int(G.in_degree(nid)))
 
         self.node_attr_df = pd.DataFrame(data)
 
@@ -107,8 +108,8 @@ class EigenCent:
         # extract freshness values and handle missing cases
         for id, node in self.nodes.items():
             if "freshness" in node:
-                numberMissedRelease = node["freshness"].get("numberMissedRelease", 0)
-                outdatedTimeInMs = node["freshness"].get("outdatedTimeInMs", 0)
+                numberMissedRelease = int(node["freshness"].get("numberMissedRelease", 0))
+                outdatedTimeInMs = int(node["freshness"].get("outdatedTimeInMs", 0))
             else:
                 numberMissedRelease = 0
                 outdatedTimeInMs = 0
@@ -128,17 +129,19 @@ class EigenCent:
         # normalize the attributes with min-max normalization
         df["Normalized_Missed"] = (df['numberMissedRelease'] - df["numberMissedRelease"].min()) / \
                                     (df['numberMissedRelease'].max() - df["numberMissedRelease"].min())
+        df['Normalized_Outdated'] = (df['outdatedTimeInMs'] - df['outdatedTimeInMs'].min()) / \
+                                    (df['outdatedTimeInMs'].max() - df['outdatedTimeInMs'].min())
+
 
         # define weights for freshness calculation
         w1, w2 = 0.5, 0.5
 
         # calculate freshness score
-        df['Freshness_Score'] = w1 * df['Normalized_Missed'] + w2 * df['Normalized_Outdated']
+        df['freshness_score'] = w1 * df['Normalized_Missed'] + w2 * df['Normalized_Outdated']
     
         # map the freshness scores back to the original nodes
         for i, node in enumerate(self.nodes.values()):
-            if "freshness" not in node:
-                node["freshness"] = df.loc[i, 'Freshness_Score']
+            node["freshness_score"] = df.loc[i, 'freshness_score']
     
     def _popu_proc(self,):
         ''' process potential missing popularity
@@ -159,8 +162,7 @@ class EigenCent:
         popularity, speed with node degree
         
         '''
-        
-        attributes = ["freshness", "POPULARITY_1_YEAR", "SPEED", "severity"]
+        attributes = ["freshness", "popularity", "speed", "severity"]
         X = self.node_attr_df[attributes]
         y = self.node_attr_df["indegree"]
 
@@ -170,9 +172,7 @@ class EigenCent:
         ''' perform stepwise regression 
         
         '''
-        X = self.node_attr_df
-
-        init_features = self.node_attr_df[self.features].to_list()
+        init_features = self.node_attr_df[self.features].columns.tolist()
         y = self.node_attr_df["indegree"]
         best_features = []
 
@@ -180,7 +180,7 @@ class EigenCent:
             best_feature = None
             for feature in init_features:
                 features = best_features + [feature]
-                X_train = X[features]
+                X_train = self.node_attr_df[features]
                 # add constant term for intercept
                 X_train = sm.add_constant(X_train)
                 model = sm.OLS(y, X_train).fit()
@@ -205,15 +205,14 @@ class EigenCent:
         
         '''
         for att in self.features:
-            logger.info("\nAnalysing {att} with in degree\n")
+            logger.info(f"Analysing {att} with in degree")
 
             # correlation for current attributes
             corr = self.node_attr_df[[att, "indegree"]].corr().iloc[0,1]
             logger.info(f"Correlation between {att} and Degree: {corr}")
 
             # perform step-wise regression with only this attributes
-            sele_feat_single = self._step_wise_reg(self.node_attr_df[[att]], \
-                                                           self.node_attr_df["indegree"])
+            sele_feat_single = self._step_wise_reg()
             
             # Perform regression with selected features
             X_single = self.node_attr_df[sele_feat_single]
@@ -271,23 +270,14 @@ class EigenCent:
 if __name__ == "__main__":
     # Example nodes with detailed attributes
     nodes = {
-    "n0": {
-        "labels": ":Artifact",
-        "id": "com.splendo.kaluga:alerts-androidlib",
-        "found": "true",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "18691100000"},
-        "popularity": 1500,
-        "speed": 0.85
-    },
     "n1": {
         "labels": ":Artifact",
         "id": "com.example:core-utils",
         "found": "true",
         "severity": "HIGH",
         "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "1000000000"},
-        "popularity": 1200,
-        "speed": 0.75
+        "POPULARITY_1_YEAR": 1200,
+        "SPEED": 0.75
     },
     "n2": {
         "labels": ":Artifact",
@@ -295,8 +285,8 @@ if __name__ == "__main__":
         "found": "false",
         "severity": "MODERATE",
         "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "5000000000"},
-        "popularity": 980,
-        "speed": 0.90
+        "POPULARITY_1_YEAR": 980,
+        "SPEED": 0.90
     },
     "n3": {
         "labels": ":Artifact",
@@ -304,8 +294,8 @@ if __name__ == "__main__":
         "found": "true",
         "severity": "LOW",
         "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "25000000000"},
-        "popularity": 1100,
-        "speed": 0.60
+        "POPULARITY_1_YEAR": 1100,
+        "SPEED": 0.60
     },
     "n4": {
         "labels": ":Artifact",
@@ -313,7 +303,7 @@ if __name__ == "__main__":
         "found": "false",
         "severity": "CRITICAL",
         "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "18000000000"},
-        "popularity": 1350,
+        "POPULARITY_1_YEAR": 1350,
         "speed": 0.82
     },
     "n5": {
@@ -322,8 +312,8 @@ if __name__ == "__main__":
         "found": "true",
         "severity": "HIGH",
         "freshness": {"numberMissedRelease": "1", "outdatedTimeInMs": "2000000000"},
-        "popularity": 1570,
-        "speed": 0.95
+        "POPULARITY_1_YEAR": 1570,
+        "SPEED": 0.95
     },
     "n6": {
         "labels": ":Artifact",
@@ -331,8 +321,8 @@ if __name__ == "__main__":
         "found": "true",
         "severity": "MODERATE",
         "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "7000000000"},
-        "popularity": 1440,
-        "speed": 0.88
+        "POPULARITY_1_YEAR": 1440,
+        "SPEED": 0.88
     },
     "n7": {
         "labels": ":Artifact",
@@ -345,8 +335,8 @@ if __name__ == "__main__":
         "found": "true",
         "severity": "HIGH",
         "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "15000000000"},
-        "popularity": 1120,
-        "speed": 0.80
+        "POPULARITY_1_YEAR": 1120,
+        "SPEED": 0.80
     },
     "n9": {
         "labels": ":Artifact",
@@ -354,8 +344,8 @@ if __name__ == "__main__":
         "found": "false",
         "severity": "CRITICAL",
         "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "8500000000"},
-        "popularity": 1550,
-        "speed": 0.78
+        "POPULARITY_1_YEAR": 1550,
+        "SPEED": 0.78
     },
     "n10": {
         "labels": ":Artifact",
@@ -363,7 +353,7 @@ if __name__ == "__main__":
         "found": "true",
         "severity": "MODERATE",
         "freshness": {"numberMissedRelease": "8", "outdatedTimeInMs": "12000000000"},
-        "popularity": 1000,
+        "POPULARITY_1_YEAR": 1000,
         "speed": 0.70
     },
     "n11": {
@@ -372,8 +362,8 @@ if __name__ == "__main__":
         "found": "true",
         "severity": "HIGH",
         "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "16000000000"},
-        "popularity": 1450,
-        "speed": 0.86
+        "POPULARITY_1_YEAR": 1450,
+        "SPEED": 0.86
     },
     "n12": {
         "labels": ":Artifact",
@@ -385,9 +375,7 @@ if __name__ == "__main__":
         "id": "com.future.module:audio-processor",
         "found": "false",
         "severity": "LOW",
-        "freshness": None,
-        "popularity": 1025,
-        "speed": None
+        "POPULARITY_1_YEAR": 1025,
         }
     }
 
@@ -414,9 +402,9 @@ if __name__ == "__main__":
     att_features = ["freshness", "popularity", "speed", "severity"]
 
     eigencenter = EigenCent(nodes, edges, att_features)
-    eigencenter._covt_df()
     # process node attribute values to right format
     eigencenter._quan_attrs()
+    eigencenter._covt_df()
     
     # analyse processed attributes
     eigencenter._corr_ana()

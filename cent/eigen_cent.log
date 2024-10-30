@@ -1,0 +1,336 @@
+2024-10-30 20:18:33,214 - __main__ - INFO - 
+Analysing {att} with in degree
+
+2024-10-30 20:18:33,214 - __main__ - INFO - Correlation between freshness and Degree: -0.07927295693683932
+2024-10-30 20:18:54,329 - __main__ - INFO - 
+Analysing {att} with in degree
+
+2024-10-30 20:18:54,329 - __main__ - INFO - Correlation between freshness and Degree: -0.07927295693683932
+2024-10-30 20:18:54,332 - __main__ - INFO - Stepwise Regression Result for freshness:
+2024-10-30 20:18:54,335 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:18:54   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:18:54,337 - __main__ - INFO - 
+Analysing {att} with in degree
+
+2024-10-30 20:18:54,338 - __main__ - INFO - Correlation between popularity and Degree: -0.0009159301824761446
+2024-10-30 20:18:54,341 - __main__ - INFO - Stepwise Regression Result for popularity:
+2024-10-30 20:18:54,342 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:18:54   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:18:54,344 - __main__ - INFO - 
+Analysing {att} with in degree
+
+2024-10-30 20:18:54,344 - __main__ - INFO - Correlation between speed and Degree: 0.41249934409108463
+2024-10-30 20:18:54,348 - __main__ - INFO - Stepwise Regression Result for speed:
+2024-10-30 20:18:54,349 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:18:54   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:18:54,351 - __main__ - INFO - 
+Analysing {att} with in degree
+
+2024-10-30 20:18:54,351 - __main__ - INFO - Correlation between severity and Degree: -0.07495878400008459
+2024-10-30 20:18:54,354 - __main__ - INFO - Stepwise Regression Result for severity:
+2024-10-30 20:18:54,355 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:18:54   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:38,441 - __main__ - INFO - Analysing {att} with in degree
+2024-10-30 20:19:38,441 - __main__ - INFO - Correlation between freshness and Degree: -0.07927295693683932
+2024-10-30 20:19:38,444 - __main__ - INFO - Stepwise Regression Result for freshness:
+2024-10-30 20:19:38,445 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:38   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:38,447 - __main__ - INFO - Analysing {att} with in degree
+2024-10-30 20:19:38,448 - __main__ - INFO - Correlation between popularity and Degree: -0.0009159301824761446
+2024-10-30 20:19:38,451 - __main__ - INFO - Stepwise Regression Result for popularity:
+2024-10-30 20:19:38,452 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:38   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:38,454 - __main__ - INFO - Analysing {att} with in degree
+2024-10-30 20:19:38,454 - __main__ - INFO - Correlation between speed and Degree: 0.41249934409108463
+2024-10-30 20:19:38,457 - __main__ - INFO - Stepwise Regression Result for speed:
+2024-10-30 20:19:38,458 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:38   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:38,460 - __main__ - INFO - Analysing {att} with in degree
+2024-10-30 20:19:38,460 - __main__ - INFO - Correlation between severity and Degree: -0.07495878400008459
+2024-10-30 20:19:38,463 - __main__ - INFO - Stepwise Regression Result for severity:
+2024-10-30 20:19:38,465 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:38   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:49,741 - __main__ - INFO - Analysing freshness with in degree
+2024-10-30 20:19:49,742 - __main__ - INFO - Correlation between freshness and Degree: -0.07927295693683932
+2024-10-30 20:19:49,745 - __main__ - INFO - Stepwise Regression Result for freshness:
+2024-10-30 20:19:49,746 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:49   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:49,748 - __main__ - INFO - Analysing popularity with in degree
+2024-10-30 20:19:49,749 - __main__ - INFO - Correlation between popularity and Degree: -0.0009159301824761446
+2024-10-30 20:19:49,752 - __main__ - INFO - Stepwise Regression Result for popularity:
+2024-10-30 20:19:49,753 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:49   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:49,755 - __main__ - INFO - Analysing speed with in degree
+2024-10-30 20:19:49,755 - __main__ - INFO - Correlation between speed and Degree: 0.41249934409108463
+2024-10-30 20:19:49,759 - __main__ - INFO - Stepwise Regression Result for speed:
+2024-10-30 20:19:49,760 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:49   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-30 20:19:49,762 - __main__ - INFO - Analysing severity with in degree
+2024-10-30 20:19:49,762 - __main__ - INFO - Correlation between severity and Degree: -0.07495878400008459
+2024-10-30 20:19:49,765 - __main__ - INFO - Stepwise Regression Result for severity:
+2024-10-30 20:19:49,766 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Wed, 30 Oct 2024   Prob (F-statistic):                nan
+Time:                        20:19:49   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
