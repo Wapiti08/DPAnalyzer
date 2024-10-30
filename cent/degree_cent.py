@@ -144,8 +144,6 @@ if __name__ == "__main__":
         }
     }
 
-
-
     # Example edges
     edges = [
         ("n1", "n2", {"label": "relationship_AR"}),
@@ -164,4 +162,4 @@ if __name__ == "__main__":
         ("n5", "n8", {"label": "relationship_AR"}),
     ]
 
-    
+    print(cal_degree_centrality(nodes, edges))

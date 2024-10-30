@@ -32,9 +32,8 @@ class BetCent:
         while queue:
             # record current node and distance of current node
             node = queue.popleft()
-
             for ngb in graph[node]:
-                if distances[ngb] == float("inf"):
+                if ngb not in distances:
                     distances[ngb] = distances[node] + 1
                     queue.append(ngb)
                     paths[ngb] = [path + [ngb] for path in paths[node]]
@@ -56,13 +55,14 @@ class BetCent:
         # iterate over all pairs of nodes and count shortest 
         # paths that pass through each node
         for start in self.nodes.keys():
-            distances, paths = self.bfs_shortest_paths(graph, start)
+            _, paths = self.bfs_shortest_paths(graph, start)
 
             for end in self.nodes:
-                if end != start and end in paths:
+                if end != start and paths[end]:
                     total_paths = len(paths[end])
-                    for node in paths[end]:
-                        if node != start and node != end:
+                    for path in paths[end]:
+                        # exclude start and end nodes
+                        for node in path[1:-1]:
                             between_cent[node] += 1 / total_paths
 
         return between_cent
@@ -210,3 +210,6 @@ if __name__ == "__main__":
         ("n12", "n13", {"label": "relationship_AR"}),
         ("n5", "n8", {"label": "relationship_AR"}),
     ]
+
+    betcenter = BetCent(nodes, edges)
+    print(betcenter.cal_between_cent())

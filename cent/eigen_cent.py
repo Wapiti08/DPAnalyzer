@@ -166,11 +166,14 @@ class EigenCent:
 
         return self.node_attr_df[attributes + ["indegree"]].corr()
         
-    def _step_wise_reg(self, X, y):
+    def _step_wise_reg(self, ):
         ''' perform stepwise regression 
         
         '''
-        init_features = X.columns.tolist()
+        X = self.node_attr_df
+
+        init_features = self.node_attr_df[self.features].to_list()
+        y = self.node_attr_df["indegree"]
         best_features = []
 
         while init_features:
@@ -230,6 +233,7 @@ class EigenCent:
         self._fresh_score()
         self._speed_proc()
         self._popu_proc()
+
 
     def cal_weighted_eigen_cent(self, nodes,  max_iterations=100, tolerance=1e-6):
         ''' the attributes of original nodes have been quantified into numeric features as weight
@@ -406,3 +410,18 @@ if __name__ == "__main__":
         ("n12", "n13", {"label": "relationship_AR"}),
         ("n5", "n8", {"label": "relationship_AR"}),
     ]
+
+    att_features = ["freshness", "popularity", "speed", "severity"]
+
+    eigencenter = EigenCent(nodes, edges, att_features)
+    eigencenter._covt_df()
+    # process node attribute values to right format
+    eigencenter._quan_attrs()
+    
+    # analyse processed attributes
+    eigencenter._corr_ana()
+    eigencenter._step_wise_reg()
+    eigencenter._weight_ana()
+
+    # get the eigen centrality
+    eigencenter.cal_weighted_eigen_cent(nodes)
