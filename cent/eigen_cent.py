@@ -17,6 +17,19 @@
 import pandas as pd
 import statsmodels.api as sm
 import networkx as nx
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s [%(levelname)s]: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S'
+                )
+logger = logging.getLogger(__name__)
+file_handler = logging.FileHandler('eigen_cent.log')
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
 
 # define the mapping table from severity to score
 
@@ -31,10 +44,10 @@ class EigenCent:
     ''' calculate eigenvector centraility for directed graphs, only consider incoming edges
     
     '''
-    def __init__(self, nodes, edges):
+    def __init__(self, nodes, edges, features:list):
         self.nodes = nodes
         self.edges = edges
-
+        self.features = features
         self.graph = {node: [] for node in nodes.keys()}
 
         # create the graph skeleton 
@@ -42,7 +55,38 @@ class EigenCent:
             # only consider incoming edges for eigenvector
             self.graph[target].append(source)
 
-    
+    def _covt_df(self,):
+        ''' covert nodes to node based dataframe
+        
+        '''
+        # create a dict to save iterative values 
+        data = {
+            "id": [],
+            "freshness": [],
+            "popularity": [],
+            "speed": [],
+            "severity": [],
+            "indegree": []
+        }
+
+        # create a direct graph
+        G = nx.DiGraph()
+
+        # Add edges based on your self.graph structure
+        for node, neighbors in self.graph.items():
+            for neighbor in neighbors:
+                G.add_edge(node, neighbor)
+
+        for id, node in self.nodes.items():
+            data.ip.append(id)
+            data.freshness.append(node["freshness"])
+            data.popularity.append(node["POPULARITY_1_YEAR"])
+            data.speed.append(node["SPEED"])
+            data.severity.append(node["severity"])
+            data.degree.append(G.in_degree(node))
+
+        self.node_attr_df = pd.DataFrame(data)
+
     def _sever_map(self, sev_score_map_dict):
         ''' encode nodes cve severity to numeric features, replace original one
         
@@ -111,32 +155,17 @@ class EigenCent:
             node["SPEED"] = node.get("SPEED", 0)
 
     def _corr_ana(self,):
-        ''' using pandas to perform correlation analysis between severity, freshness, popularity, 
-        speed with node degree
+        ''' using pandas to perform correlation analysis between severity, freshness, 
+        popularity, speed with node degree
         
         '''
-        # create a dict to save iterative values 
-        data = {
-            "id": [],
-            "freshness": [],
-            "popularity": [],
-            "speed": [],
-            "severity": [],
-            "degree": []
-        }
-
-        for id, node in self.nodes.items():
-            data.ip.append(id)
-            data.freshness.append(node["freshness"])
-            data.popularity.append(node["POPULARITY_1_YEAR"])
-            data.speed.append(node["SPEED"])
-            data.severity.append(node["severity"])
-
-
-
         
+        attributes = ["freshness", "POPULARITY_1_YEAR", "SPEED", "severity"]
+        X = self.node_attr_df[attributes]
+        y = self.node_attr_df["indegree"]
 
-
+        return self.node_attr_df[attributes + ["indegree"]].corr()
+        
     def _step_wise_reg(self, X, y):
         ''' perform stepwise regression 
         
@@ -144,15 +173,53 @@ class EigenCent:
         init_features = X.columns.tolist()
         best_features = []
 
-
-
+        while init_features:
+            best_feature = None
+            for feature in init_features:
+                features = best_features + [feature]
+                X_train = X[features]
+                # add constant term for intercept
+                X_train = sm.add_constant(X_train)
+                model = sm.OLS(y, X_train).fit()
+                p_value = model.pvalues[feature]
+                # p_value is significant
+                if p_value < 0.05:
+                    if best_feature is None or model.rsquared > best_feature[1]:
+                        best_feature = (feature, model.rsquared)
+            
+            if best_feature:
+                best_features.append(best_feature[0])
+                init_features.remove(best_feature[0])
+            else:
+                break  
+        
+        return best_features
 
 
     def _weight_ana(self,):
-        ''' 
+        ''' combine correlation analysis and step-wise regression
+        to analyse different attributes with their contribution
         
         '''
+        for att in self.features:
+            logger.info("\nAnalysing {att} with in degree\n")
 
+            # correlation for current attributes
+            corr = self.node_attr_df[[att, "indegree"]].corr().iloc[0,1]
+            logger.info(f"Correlation between {att} and Degree: {corr}")
+
+            # perform step-wise regression with only this attributes
+            sele_feat_single = self._step_wise_reg(self.node_attr_df[[att]], \
+                                                           self.node_attr_df["indegree"])
+            
+            # Perform regression with selected features
+            X_single = self.node_attr_df[sele_feat_single]
+            X_single = sm.add_constant(X_single)
+            model_single = sm.OLS(self.node_attr_df["indegree"], X_single).fit()
+
+            # Show results of the regression for this attribute
+            logger.info(f"Stepwise Regression Result for {att}:")
+            logger.info(model_single.summary())
 
 
     def _quan_attrs(self,):
@@ -163,8 +230,6 @@ class EigenCent:
         self._fresh_score()
         self._speed_proc()
         self._popu_proc()
-
-
 
     def cal_weighted_eigen_cent(self, nodes,  max_iterations=100, tolerance=1e-6):
         ''' the attributes of original nodes have been quantified into numeric features as weight
@@ -199,3 +264,145 @@ class EigenCent:
         return centrality
     
 
+if __name__ == "__main__":
+    # Example nodes with detailed attributes
+    nodes = {
+    "n0": {
+        "labels": ":Artifact",
+        "id": "com.splendo.kaluga:alerts-androidlib",
+        "found": "true",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "18691100000"},
+        "popularity": 1500,
+        "speed": 0.85
+    },
+    "n1": {
+        "labels": ":Artifact",
+        "id": "com.example:core-utils",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "1000000000"},
+        "popularity": 1200,
+        "speed": 0.75
+    },
+    "n2": {
+        "labels": ":Artifact",
+        "id": "org.sample:logging-lib",
+        "found": "false",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "5000000000"},
+        "popularity": 980,
+        "speed": 0.90
+    },
+    "n3": {
+        "labels": ":Artifact",
+        "id": "com.app.feature:networking",
+        "found": "true",
+        "severity": "LOW",
+        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "25000000000"},
+        "popularity": 1100,
+        "speed": 0.60
+    },
+    "n4": {
+        "labels": ":Artifact",
+        "id": "org.package:ui-components",
+        "found": "false",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "18000000000"},
+        "popularity": 1350,
+        "speed": 0.82
+    },
+    "n5": {
+        "labels": ":Artifact",
+        "id": "io.module:analytics-core",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "1", "outdatedTimeInMs": "2000000000"},
+        "popularity": 1570,
+        "speed": 0.95
+    },
+    "n6": {
+        "labels": ":Artifact",
+        "id": "com.system.library:security",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "7000000000"},
+        "popularity": 1440,
+        "speed": 0.88
+    },
+    "n7": {
+        "labels": ":Artifact",
+        "id": "org.framework:database",
+        "found": "false",
+    },
+    "n8": {
+        "labels": ":Artifact",
+        "id": "com.example.module:parser",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "15000000000"},
+        "popularity": 1120,
+        "speed": 0.80
+    },
+    "n9": {
+        "labels": ":Artifact",
+        "id": "org.utility:config",
+        "found": "false",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "8500000000"},
+        "popularity": 1550,
+        "speed": 0.78
+    },
+    "n10": {
+        "labels": ":Artifact",
+        "id": "com.example.new:auth-lib",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "8", "outdatedTimeInMs": "12000000000"},
+        "popularity": 1000,
+        "speed": 0.70
+    },
+    "n11": {
+        "labels": ":Artifact",
+        "id": "com.newfeature.module:video-processor",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "16000000000"},
+        "popularity": 1450,
+        "speed": 0.86
+    },
+    "n12": {
+        "labels": ":Artifact",
+        "id": "org.temp.module:chat-lib",
+        "found": "false",
+    },
+    "n13": {
+        "labels": ":Artifact",
+        "id": "com.future.module:audio-processor",
+        "found": "false",
+        "severity": "LOW",
+        "freshness": None,
+        "popularity": 1025,
+        "speed": None
+        }
+    }
+
+
+
+    # Example edges
+    edges = [
+        ("n1", "n2", {"label": "relationship_AR"}),
+        ("n1", "n3", {"label": "relationship_AR"}),
+        ("n2", "n4", {"label": "relationship_AR"}),
+        ("n5", "n1", {"label": "relationship_AR"}),
+        ("n5", "n6", {"label": "relationship_AR"}),
+        ("n3", "n7", {"label": "relationship_AR"}),
+        ("n8", "n9", {"label": "relationship_AR"}),
+        ("n2", "n10", {"label": "relationship_AR"}),
+        ("n10", "n11", {"label": "relationship_AR"}),
+        ("n11", "n12", {"label": "relationship_AR"}),
+        ("n7", "n13", {"label": "relationship_AR"}),
+        ("n3", "n10", {"label": "relationship_AR"}),
+        ("n12", "n13", {"label": "relationship_AR"}),
+        ("n5", "n8", {"label": "relationship_AR"}),
+    ]

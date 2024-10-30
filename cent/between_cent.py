@@ -69,4 +69,144 @@ class BetCent:
     
 
 if __name__ == "__main__":
-    pass
+    # Example nodes with detailed attributes
+    nodes = {
+    "n0": {
+        "labels": ":Artifact",
+        "id": "com.splendo.kaluga:alerts-androidlib",
+        "found": "true",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "18691100000"},
+        "popularity": 1500,
+        "speed": 0.85
+    },
+    "n1": {
+        "labels": ":Artifact",
+        "id": "com.example:core-utils",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "1000000000"},
+        "popularity": 1200,
+        "speed": 0.75
+    },
+    "n2": {
+        "labels": ":Artifact",
+        "id": "org.sample:logging-lib",
+        "found": "false",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "5000000000"},
+        "popularity": 980,
+        "speed": 0.90
+    },
+    "n3": {
+        "labels": ":Artifact",
+        "id": "com.app.feature:networking",
+        "found": "true",
+        "severity": "LOW",
+        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "25000000000"},
+        "popularity": 1100,
+        "speed": 0.60
+    },
+    "n4": {
+        "labels": ":Artifact",
+        "id": "org.package:ui-components",
+        "found": "false",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "18000000000"},
+        "popularity": 1350,
+        "speed": 0.82
+    },
+    "n5": {
+        "labels": ":Artifact",
+        "id": "io.module:analytics-core",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "1", "outdatedTimeInMs": "2000000000"},
+        "popularity": 1570,
+        "speed": 0.95
+    },
+    "n6": {
+        "labels": ":Artifact",
+        "id": "com.system.library:security",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "7000000000"},
+        "popularity": 1440,
+        "speed": 0.88
+    },
+    "n7": {
+        "labels": ":Artifact",
+        "id": "org.framework:database",
+        "found": "false",
+    },
+    "n8": {
+        "labels": ":Artifact",
+        "id": "com.example.module:parser",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "15000000000"},
+        "popularity": 1120,
+        "speed": 0.80
+    },
+    "n9": {
+        "labels": ":Artifact",
+        "id": "org.utility:config",
+        "found": "false",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "8500000000"},
+        "popularity": 1550,
+        "speed": 0.78
+    },
+    "n10": {
+        "labels": ":Artifact",
+        "id": "com.example.new:auth-lib",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "8", "outdatedTimeInMs": "12000000000"},
+        "popularity": 1000,
+        "speed": 0.70
+    },
+    "n11": {
+        "labels": ":Artifact",
+        "id": "com.newfeature.module:video-processor",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "16000000000"},
+        "popularity": 1450,
+        "speed": 0.86
+    },
+    "n12": {
+        "labels": ":Artifact",
+        "id": "org.temp.module:chat-lib",
+        "found": "false",
+    },
+    "n13": {
+        "labels": ":Artifact",
+        "id": "com.future.module:audio-processor",
+        "found": "false",
+        "severity": "LOW",
+        "freshness": None,
+        "popularity": 1025,
+        "speed": None
+        }
+    }
+
+
+
+    # Example edges
+    edges = [
+        ("n1", "n2", {"label": "relationship_AR"}),
+        ("n1", "n3", {"label": "relationship_AR"}),
+        ("n2", "n4", {"label": "relationship_AR"}),
+        ("n5", "n1", {"label": "relationship_AR"}),
+        ("n5", "n6", {"label": "relationship_AR"}),
+        ("n3", "n7", {"label": "relationship_AR"}),
+        ("n8", "n9", {"label": "relationship_AR"}),
+        ("n2", "n10", {"label": "relationship_AR"}),
+        ("n10", "n11", {"label": "relationship_AR"}),
+        ("n11", "n12", {"label": "relationship_AR"}),
+        ("n7", "n13", {"label": "relationship_AR"}),
+        ("n3", "n10", {"label": "relationship_AR"}),
+        ("n12", "n13", {"label": "relationship_AR"}),
+        ("n5", "n8", {"label": "relationship_AR"}),
+    ]
