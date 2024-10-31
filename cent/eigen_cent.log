@@ -334,3 +334,356 @@ Kurtosis:                       2.314   Cond. No.                         1.00
 
 Notes:
 [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:58:07,447 - __main__ - INFO - Analysing freshness with in degree
+2024-10-31 10:58:07,447 - __main__ - INFO - Correlation between freshness and Degree: -0.07927295693683932
+2024-10-31 10:58:07,450 - __main__ - INFO - Stepwise Regression Result for freshness:
+2024-10-31 10:58:07,452 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:58:07   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:58:07,454 - __main__ - INFO - Analysing popularity with in degree
+2024-10-31 10:58:07,454 - __main__ - INFO - Correlation between popularity and Degree: -0.0009159301824761446
+2024-10-31 10:58:07,457 - __main__ - INFO - Stepwise Regression Result for popularity:
+2024-10-31 10:58:07,458 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:58:07   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:58:07,460 - __main__ - INFO - Analysing speed with in degree
+2024-10-31 10:58:07,461 - __main__ - INFO - Correlation between speed and Degree: 0.41249934409108463
+2024-10-31 10:58:07,464 - __main__ - INFO - Stepwise Regression Result for speed:
+2024-10-31 10:58:07,465 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:58:07   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:58:07,467 - __main__ - INFO - Analysing severity with in degree
+2024-10-31 10:58:07,467 - __main__ - INFO - Correlation between severity and Degree: -0.07495878400008459
+2024-10-31 10:58:07,470 - __main__ - INFO - Stepwise Regression Result for severity:
+2024-10-31 10:58:07,471 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:58:07   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:59:29,536 - __main__ - INFO - Analysing freshness with in degree
+2024-10-31 10:59:29,536 - __main__ - INFO - Correlation between freshness and Degree: -0.07927295693683932
+2024-10-31 10:59:29,539 - __main__ - INFO - Stepwise Regression Result for freshness:
+2024-10-31 10:59:29,541 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:59:29   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:59:29,543 - __main__ - INFO - Analysing popularity with in degree
+2024-10-31 10:59:29,543 - __main__ - INFO - Correlation between popularity and Degree: -0.0009159301824761446
+2024-10-31 10:59:29,546 - __main__ - INFO - Stepwise Regression Result for popularity:
+2024-10-31 10:59:29,547 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:59:29   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:59:29,549 - __main__ - INFO - Analysing speed with in degree
+2024-10-31 10:59:29,549 - __main__ - INFO - Correlation between speed and Degree: 0.41249934409108463
+2024-10-31 10:59:29,552 - __main__ - INFO - Stepwise Regression Result for speed:
+2024-10-31 10:59:29,554 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:59:29   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 10:59:29,556 - __main__ - INFO - Analysing severity with in degree
+2024-10-31 10:59:29,556 - __main__ - INFO - Correlation between severity and Degree: -0.07495878400008459
+2024-10-31 10:59:29,559 - __main__ - INFO - Stepwise Regression Result for severity:
+2024-10-31 10:59:29,560 - __main__ - INFO -                             OLS Regression Results                            
+==============================================================================
+Dep. Variable:               indegree   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                  0.000
+Method:                 Least Squares   F-statistic:                       nan
+Date:                Thu, 31 Oct 2024   Prob (F-statistic):                nan
+Time:                        10:59:29   Log-Likelihood:                -17.315
+No. Observations:                  13   AIC:                             36.63
+Df Residuals:                      12   BIC:                             37.19
+Df Model:                           0                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.0769      0.265      4.070      0.002       0.500       1.653
+==============================================================================
+Omnibus:                        0.760   Durbin-Watson:                   2.380
+Prob(Omnibus):                  0.684   Jarque-Bera (JB):                0.688
+Skew:                           0.447   Prob(JB):                        0.709
+Kurtosis:                       2.314   Cond. No.                         1.00
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+2024-10-31 11:42:49,034 - __main__ - WARNING - No significant attributes found for weight calculation.
+2024-10-31 11:44:34,183 - __main__ - WARNING - No significant attributes found for weight calculation.
+2024-10-31 11:44:42,640 - __main__ - WARNING - No significant attributes found for weight calculation.
+2024-10-31 12:01:24,558 - __main__ - INFO - Left important features after correlation analyis are: ['speed']
+2024-10-31 12:01:24,559 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 12:01:52,803 - __main__ - INFO - Left important features after correlation analyis are: ['speed']
+2024-10-31 12:01:52,804 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 12:02:27,569 - __main__ - INFO - Left important features after correlation analyis are: ['freshness', 'speed', 'severity']
+2024-10-31 12:02:27,571 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 12:06:20,173 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 12:06:20,176 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 12:06:47,012 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 12:06:47,014 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 12:07:38,449 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 12:07:38,450 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 12:07:38,451 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 12:07:38,452 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 12:07:38,452 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 12:24:28,845 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 12:24:28,846 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 12:24:28,846 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 12:24:28,847 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 12:24:28,851 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 12:24:28,852 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 12:24:28,853 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 12:24:28,853 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 12:24:28,853 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 13:15:17,043 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 13:15:17,044 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:15:17,045 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:15:17,046 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:15:17,046 - __main__ - INFO - the pvalues for feature freshness is: 0.7849014471294014
+2024-10-31 13:15:17,047 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:15:17,048 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:15:17,049 - __main__ - INFO - the pvalues for feature freshness is: 0.8061731774193304
+2024-10-31 13:15:17,050 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:15:17,053 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 13:15:17,054 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:15:17,055 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:15:17,055 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:15:17,055 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 13:15:42,851 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 13:15:42,852 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:15:42,853 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:15:42,853 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:15:42,854 - __main__ - INFO - the pvalues for feature freshness is: 0.7849014471294014
+2024-10-31 13:15:42,855 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:15:42,856 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:15:42,857 - __main__ - INFO - the pvalues for feature freshness is: 0.8061731774193304
+2024-10-31 13:15:42,857 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:15:42,860 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 13:15:42,861 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:15:42,862 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:15:42,863 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:15:42,863 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 13:19:15,064 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 13:19:15,065 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:19:15,066 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:19:15,066 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:19:15,067 - __main__ - INFO - the pvalues for feature freshness is: 0.7849014471294014
+2024-10-31 13:19:15,068 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:19:15,068 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:19:15,069 - __main__ - INFO - the pvalues for feature freshness is: 0.8061731774193304
+2024-10-31 13:19:15,070 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:19:15,073 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 13:19:15,074 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:19:15,074 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:19:15,075 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:19:15,075 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-10-31 13:19:40,499 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 13:19:40,500 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:19:40,501 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:19:40,502 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:19:40,503 - __main__ - INFO - the pvalues for feature freshness is: 0.7849014471294014
+2024-10-31 13:19:40,503 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:19:40,504 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:19:40,505 - __main__ - INFO - the pvalues for feature freshness is: 0.8061731774193304
+2024-10-31 13:19:40,506 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:19:40,509 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 13:19:40,510 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:19:40,510 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:19:40,511 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:19:40,512 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:19:40,512 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:19:40,513 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:19:40,513 - __main__ - INFO - Left important features after step-wise regression are: ['severity', 'speed']
+2024-10-31 13:21:49,966 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 13:21:49,967 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:21:49,967 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:21:49,968 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:21:49,969 - __main__ - INFO - the pvalues for feature freshness is: 0.7849014471294014
+2024-10-31 13:21:49,970 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:21:49,970 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:21:49,971 - __main__ - INFO - the pvalues for feature freshness is: 0.8061731774193304
+2024-10-31 13:21:49,972 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:21:49,975 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 13:21:49,976 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:21:49,977 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:21:49,978 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:21:49,979 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:21:49,980 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:21:49,980 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:21:49,980 - __main__ - INFO - Left important features after step-wise regression are: ['severity', 'speed']
+2024-10-31 13:22:18,965 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 13:22:18,966 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:22:18,966 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:22:18,967 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:22:18,968 - __main__ - INFO - the pvalues for feature freshness is: 0.7849014471294014
+2024-10-31 13:22:18,968 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:22:18,969 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:22:18,970 - __main__ - INFO - the pvalues for feature freshness is: 0.8061731774193304
+2024-10-31 13:22:18,971 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:22:18,973 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 13:22:18,974 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:22:18,975 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:22:18,976 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:22:18,976 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:22:18,977 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:22:18,978 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:22:18,978 - __main__ - INFO - Left important features after step-wise regression are: ['severity', 'speed']
+2024-10-31 13:23:48,766 - __main__ - INFO - the pvalues for feature freshness is: 0.9745041861342174
+2024-10-31 13:23:48,767 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:23:48,767 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:23:48,768 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:23:48,769 - __main__ - INFO - the pvalues for feature freshness is: 0.7849014471294014
+2024-10-31 13:23:48,770 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:23:48,770 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:23:48,771 - __main__ - INFO - the pvalues for feature freshness is: 0.8061731774193304
+2024-10-31 13:23:48,772 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:23:48,775 - __main__ - INFO - Left important features after correlation analyis are: ['popularity', 'speed', 'severity']
+2024-10-31 13:23:48,776 - __main__ - INFO - the pvalues for feature popularity is: 0.6869813209418405
+2024-10-31 13:23:48,776 - __main__ - INFO - the pvalues for feature speed is: 0.6655532701341874
+2024-10-31 13:23:48,777 - __main__ - INFO - the pvalues for feature severity is: 0.39843000047775834
+2024-10-31 13:23:48,778 - __main__ - INFO - the pvalues for feature popularity is: 0.6048803255953035
+2024-10-31 13:23:48,779 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
+2024-10-31 13:23:48,779 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
+2024-10-31 13:23:48,779 - __main__ - INFO - Left important features after step-wise regression are: ['severity', 'speed']

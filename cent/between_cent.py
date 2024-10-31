@@ -65,7 +65,9 @@ class BetCent:
                         for node in path[1:-1]:
                             between_cent[node] += 1 / total_paths
 
-        return between_cent
+        # Sort nodes by centrality and return the top 10
+        top_10 = sorted(between_cent.items(), key=lambda x: x[1], reverse=True)[:10]
+        return top_10
     
 
 if __name__ == "__main__":

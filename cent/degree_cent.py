@@ -17,7 +17,9 @@ def cal_degree_centrality(nodes, edges):
         degree_cent[source] += 1
         degree_cent[target] += 1
     
-    return degree_cent
+    # Sort nodes by centrality and return the top 10
+    top_10 = sorted(degree_cent.items(), key=lambda x: x[1], reverse=True)[:10]
+    return top_10
 
 
 if __name__ == "__main__":

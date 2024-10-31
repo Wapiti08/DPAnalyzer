@@ -66,7 +66,8 @@ class EigenCent:
             "popularity": [],
             "speed": [],
             "severity": [],
-            "indegree": []
+            "indegree": [],
+            "degree": []
         }
 
         # create a direct graph
@@ -85,6 +86,7 @@ class EigenCent:
             data["speed"].append(node["SPEED"])
             data["severity"].append(node["severity"])
             data["indegree"].append(int(G.in_degree(nid)))
+            data["degree"].append(int(G.degree(nid)))
 
         self.node_attr_df = pd.DataFrame(data)
 
@@ -164,16 +166,19 @@ class EigenCent:
         '''
         attributes = ["freshness", "popularity", "speed", "severity"]
         X = self.node_attr_df[attributes]
-        y = self.node_attr_df["indegree"]
+        # y = self.node_attr_df["indegree"]
+        y = self.node_attr_df["degree"]
 
-        return self.node_attr_df[attributes + ["indegree"]].corr()
+        # return self.node_attr_df[attributes + ["indegree"]].corr()
+        return self.node_attr_df[attributes + ["degree"]].corr()
         
-    def _step_wise_reg(self, ):
+    def _step_wise_reg(self, reg_thres, sele_features):
         ''' perform stepwise regression 
         
         '''
-        init_features = self.node_attr_df[self.features].columns.tolist()
-        y = self.node_attr_df["indegree"]
+        init_features = self.node_attr_df[sele_features].columns.tolist()
+        # y = self.node_attr_df["indegree"]
+        y = self.node_attr_df["degree"]
         best_features = []
 
         while init_features:
@@ -185,8 +190,9 @@ class EigenCent:
                 X_train = sm.add_constant(X_train)
                 model = sm.OLS(y, X_train).fit()
                 p_value = model.pvalues[feature]
+                logger.info(f"the pvalues for feature {feature} is: {p_value}")
                 # p_value is significant
-                if p_value < 0.05:
+                if p_value < reg_thres:
                     if best_feature is None or model.rsquared > best_feature[1]:
                         best_feature = (feature, model.rsquared)
             
@@ -199,31 +205,55 @@ class EigenCent:
         return best_features
 
 
-    def _weight_ana(self,):
+    def _weight_ana(self, corr_thres=0.1, reg_thres=0.05):
         ''' combine correlation analysis and step-wise regression
         to analyse different attributes with their contribution
         
         '''
-        for att in self.features:
-            logger.info(f"Analysing {att} with in degree")
+        # perform correlation analysis for all features
+        corr_results = self._corr_ana()
+        print(corr_results)
+        # sign_attrs = corr_results["indegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
+        sign_attrs = corr_results["degree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
+        # sign_attrs.remove("indegree")
+        sign_attrs.remove("degree")
+        logger.info(f"Left important features after correlation analyis are: {sign_attrs}")
 
-            # correlation for current attributes
-            corr = self.node_attr_df[[att, "indegree"]].corr().iloc[0,1]
-            logger.info(f"Correlation between {att} and Degree: {corr}")
+        # run step-wise regression using all features at once
+        # self.node_attr_df = self.node_attr_df[sign_attrs + ["indegree"]]
+        self.node_attr_df = self.node_attr_df[sign_attrs + ["degree"]]
+        sele_features = self._step_wise_reg(reg_thres, sign_attrs)
+        logger.info(f"Left important features after step-wise regression are: {sele_features}")
 
-            # perform step-wise regression with only this attributes
-            sele_feat_single = self._step_wise_reg()
-            
-            # Perform regression with selected features
-            X_single = self.node_attr_df[sele_feat_single]
+
+        # Step 3: Calculate contributions and aggregate into a single 'weight' attribute
+        contribution_scores = {}
+        total_contribution = 0
+
+        for feature in sele_features:
+            X_single = self.node_attr_df[[feature]]
             X_single = sm.add_constant(X_single)
-            model_single = sm.OLS(self.node_attr_df["indegree"], X_single).fit()
+            # model = sm.OLS(self.node_attr_df["indegree"], X_single).fit()
+            model = sm.OLS(self.node_attr_df["degree"], X_single).fit()
+            contribution = model.rsquared
+            contribution_scores[feature] = contribution
+            total_contribution += contribution
 
-            # Show results of the regression for this attribute
-            logger.info(f"Stepwise Regression Result for {att}:")
-            logger.info(model_single.summary())
+        # Step 4: Convert individual contributions into a combined weight attribute
+        self.node_attr_df["weight"] = self.node_attr_df[sele_features].apply(
+            lambda row: sum(row[feature] * (contribution_scores[feature] / total_contribution) for feature in sele_features),
+            axis=1
+        )
 
+        # Step 5: Normalize the 'weight' to [0, 1] range
+        min_weight = self.node_attr_df["weight"].min()
+        max_weight = self.node_attr_df["weight"].max()
+        if max_weight > min_weight:
+            self.node_attr_df["weight"] = (self.node_attr_df["weight"] - min_weight) / (max_weight - min_weight)
 
+        return self.node_attr_df[["weight"]]
+
+    
     def _quan_attrs(self,):
         ''' initialize quantify attributes of nodes
         
@@ -234,23 +264,23 @@ class EigenCent:
         self._popu_proc()
 
 
-    def cal_weighted_eigen_cent(self, nodes,  max_iterations=100, tolerance=1e-6):
+    def cal_weighted_eigen_cent(self, max_iterations=100, tolerance=1e-6):
         ''' the attributes of original nodes have been quantified into numeric features as weight
         
-        :param nodes: dict type
         '''
-        weights = {node: float(attributes.get('weight', 1)) for node, attributes in nodes.items()}
+        # Extract weights from the node attribute DataFrame
+        weights = self.node_attr_df['weight'].to_dict()
 
         # initialize centrailities
-        centrality = {node:0.0 for node in nodes}
+        centrality = {node:0.0 for node in self.nodes.keys()}
 
         # update centrailities as per iteration
         for _ in range(max_iterations):
-            new_centrality = {node: 0.0 for node in nodes}
+            new_centrality = {node: 0.0 for node in self.nodes.keys()}
 
-            for node in nodes:
+            for node in self.nodes.keys():
                 for neighbor in self.graph[node]:
-                    new_centrality[node] += centrality[neighbor] * weights[neighbor]
+                    new_centrality[node] += centrality[neighbor] * weights.get(neighbor, 0)
         
             # normalize the centralities
             norm = sum(new_centrality.values())    
@@ -259,12 +289,14 @@ class EigenCent:
             new_centrality = {node: val / norm for node, val in new_centrality.items()}
             
             # check for convergence
-            if all(abs(new_centrality[node] - centrality[node]) < tolerance for node in nodes):
+            if all(abs(new_centrality[node] - centrality[node]) < tolerance for node in self.nodes.keys()):
                 break
         
             centrality = new_centrality
-
-        return centrality
+        # Sort the centralities and get the top 10
+        top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
+    
+        return top_cents
     
 
 if __name__ == "__main__":
@@ -406,10 +438,9 @@ if __name__ == "__main__":
     eigencenter._quan_attrs()
     eigencenter._covt_df()
     
+    eigencenter._step_wise_reg(0.05, att_features)
     # analyse processed attributes
-    eigencenter._corr_ana()
-    eigencenter._step_wise_reg()
     eigencenter._weight_ana()
 
     # get the eigen centrality
-    eigencenter.cal_weighted_eigen_cent(nodes)
+    print(eigencenter.cal_weighted_eigen_cent())
