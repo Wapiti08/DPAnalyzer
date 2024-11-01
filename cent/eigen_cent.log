@@ -687,3 +687,7 @@ Notes:
 2024-10-31 13:23:48,779 - __main__ - INFO - the pvalues for feature speed is: 0.3341525456143236
 2024-10-31 13:23:48,779 - __main__ - INFO - the pvalues for feature popularity is: 0.9330706147296586
 2024-10-31 13:23:48,779 - __main__ - INFO - Left important features after step-wise regression are: ['severity', 'speed']
+2024-11-01 13:46:13,260 - __main__ - INFO - the pvalues for feature freshness is: nan
+2024-11-01 13:46:13,261 - __main__ - INFO - the pvalues for feature popularity is: nan
+2024-11-01 13:46:13,262 - __main__ - INFO - the pvalues for feature speed is: nan
+2024-11-01 13:46:13,263 - __main__ - INFO - the pvalues for feature severity is: nan

@@ -44,16 +44,27 @@ class EigenCent:
     ''' calculate eigenvector centraility for directed graphs, only consider incoming edges
     
     '''
-    def __init__(self, nodes, edges, features:list):
+    def __init__(self, nodes, edges, features:list, severity_map: dict):
         self.nodes = nodes
         self.edges = edges
         self.features = features
-        self.graph = {node: [] for node in nodes.keys()}
+        self.severity_map = severity_map
+        # Create the graph skeleton with nodes that have severity > 0
+        self.graph = {node: [] for node, attrs in nodes.items() if self._get_severity(attrs) > 0}
 
         # create the graph skeleton 
         for source, target, _ in edges:
             # only consider incoming edges for eigenvector
-            self.graph[target].append(source)
+            if target in self.graph and source in self.graph:
+                self.graph[target].append(source)
+
+
+    def _get_severity(self, node):
+        ''' convert severity string to numeric value
+        
+        '''
+        severity_str = node.get("severity", None)
+        return self.severity_map.get(severity_str, 0) if severity_str else 0
 
     def _covt_df(self,):
         ''' covert nodes to node based dataframe
@@ -79,26 +90,20 @@ class EigenCent:
                 G.add_edge(node, neighbor)
 
         for nid, node in self.nodes.items():
-            data["id"].append(nid)
-            # replace dict freshness with freshness_score
-            data["freshness"].append(node["freshness_score"])
-            data["popularity"].append(node["POPULARITY_1_YEAR"])
-            data["speed"].append(node["SPEED"])
-            data["severity"].append(node["severity"])
-            data["indegree"].append(int(G.in_degree(nid)))
-            data["degree"].append(int(G.degree(nid)))
+            if nid in self.graph:
+                data["id"].append(nid)
+                # replace dict freshness with freshness_score
+                data["freshness"].append(node["freshness_score"])
+                data["popularity"].append(node["POPULARITY_1_YEAR"])
+                data["speed"].append(node["SPEED"])
+                severity_value = self._get_severity(node)
+                data["severity"].append(severity_value)
+                data["indegree"].append(G.in_degree[nid] if nid in G.in_degree else 0)
+                data["degree"].append(G.in_degree[nid] if nid in G.in_degree else 0)
 
         self.node_attr_df = pd.DataFrame(data)
 
-    def _sever_map(self, sev_score_map_dict):
-        ''' encode nodes cve severity to numeric features, replace original one
-        
-        '''
-        for id, node in self.nodes.items():
-            severity = node.get("severity", None)
-            node['severity'] = sev_score_map_dict.get(severity, 0)
 
-    
     def _fresh_score(self,):
         ''' assume the attribute of freshness in nodes is a dict type
         
@@ -171,7 +176,8 @@ class EigenCent:
 
         # return self.node_attr_df[attributes + ["indegree"]].corr()
         return self.node_attr_df[attributes + ["degree"]].corr()
-        
+    
+
     def _step_wise_reg(self, reg_thres, sele_features):
         ''' perform stepwise regression 
         
@@ -212,7 +218,6 @@ class EigenCent:
         '''
         # perform correlation analysis for all features
         corr_results = self._corr_ana()
-        print(corr_results)
         # sign_attrs = corr_results["indegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
         sign_attrs = corr_results["degree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
         # sign_attrs.remove("indegree")
@@ -258,7 +263,6 @@ class EigenCent:
         ''' initialize quantify attributes of nodes
         
         '''
-        self._sever_map(sever_score_map)
         self._fresh_score()
         self._speed_proc()
         self._popu_proc()
@@ -268,17 +272,17 @@ class EigenCent:
         ''' the attributes of original nodes have been quantified into numeric features as weight
         
         '''
-        # Extract weights from the node attribute DataFrame
-        weights = self.node_attr_df['weight'].to_dict()
+        # Extract weights only for nodes with severity > 0
+        weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
 
-        # initialize centrailities
-        centrality = {node:0.0 for node in self.nodes.keys()}
+        # Initialize centrality only for nodes in `self.graph`
+        centrality = {node: 0.0 for node in self.graph.keys()}
 
         # update centrailities as per iteration
         for _ in range(max_iterations):
-            new_centrality = {node: 0.0 for node in self.nodes.keys()}
+            new_centrality = {node: 0.0 for node in self.graph.keys()}
 
-            for node in self.nodes.keys():
+            for node in self.graph:
                 for neighbor in self.graph[node]:
                     new_centrality[node] += centrality[neighbor] * weights.get(neighbor, 0)
         
@@ -433,7 +437,7 @@ if __name__ == "__main__":
 
     att_features = ["freshness", "popularity", "speed", "severity"]
 
-    eigencenter = EigenCent(nodes, edges, att_features)
+    eigencenter = EigenCent(nodes, edges, att_features, sever_score_map)
     # process node attribute values to right format
     eigencenter._quan_attrs()
     eigencenter._covt_df()

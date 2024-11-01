@@ -44,20 +44,21 @@ class BetCent:
         return distances, paths
     
     def cal_between_cent(self, max_iters=100, tolerance=1e-6):
-        # create adj list and extract node weights
-        graph = {node_id: [] for node_id, node in self.nodes.items()}
+        # create adj list and extract node weights, filtering only nodes with CVE info
+        graph = {node_id: [] for node_id, node in self.nodes.items() if "severity" in node}
         for source, target, _ in self.edges:
-            graph[source].append(target)
-            # graph[target].append(source)
+            if source in graph and target in graph:
+                graph[source].append(target)
+                # graph[target].append(source)
         
         between_cent = {node: 0 for node in self.nodes}
 
         # iterate over all pairs of nodes and count shortest 
         # paths that pass through each node
-        for start in self.nodes.keys():
+        for start in graph:
             _, paths = self.bfs_shortest_paths(graph, start)
 
-            for end in self.nodes:
+            for end in graph:
                 if end != start and paths[end]:
                     total_paths = len(paths[end])
                     for path in paths[end]:

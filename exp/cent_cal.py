@@ -5,6 +5,7 @@ from lxml import etree
 from cent import between_cent, degree_cent, eigen_cent
 import logging
 from pathlib import Path
+from datetime import datetime
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s]: %(message)s',
@@ -49,8 +50,10 @@ if __name__ == "__main__":
 
     file_path = Path.cwd().parent.joinpath("data", "graph_metric.graphml").as_posix()
     # generate nodes and edges from graphml
+    now = datetime.now()
     nodes, edges = parse_graphml_in_chunks(file_path)
-
+    logger.info(f"Time spent for node loading from graphml is: {datetime.now() - now}")
+    
     # ------ calculate the degree_centrality ------
     top_degree_cel = degree_cent.cal_degree_centrality(nodes, edges)
     logger.info(f"the top 10 nodes with highest degree centrality are: {top_degree_cel}")
