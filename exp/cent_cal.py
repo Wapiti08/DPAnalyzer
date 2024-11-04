@@ -46,14 +46,13 @@ def parse_graphml_in_chunks(file_path):
     return nodes, edges
 
 def save_data(nodes, edges, file_path):
-    with open(file_path, 'rb') as f:
-        pickle.dump({'node': nodes, 'edges': edges}, f)        
+    with file_path.open('wb') as f:
+        pickle.dump({'nodes': nodes, 'edges': edges}, f)        
     
 
 def load_data(file_path):
-    with open(file_path, 'rb') as f:
+    with file_path.open('rb') as f:
         data = pickle.load(f)
-    
     return data['nodes'], data['edges']
 
 
@@ -105,8 +104,6 @@ if __name__ == "__main__":
         
     for prop, top_between_cel in results.items():
         logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
-
-
 
     # ------ calculate the eigenvector centrality ------
 
