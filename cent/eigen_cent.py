@@ -54,10 +54,10 @@ class EigenCent:
 
         # create the graph skeleton 
         for source, target, _ in edges:
-            # only consider incoming edges for eigenvector
+            # consider both incoming and outcoming edges for eigenvector
             if target in self.graph and source in self.graph:
                 self.graph[target].append(source)
-
+                self.graph[source].append(target)
 
     def _get_severity(self, node):
         ''' convert severity string to numeric value

@@ -5,6 +5,7 @@
  path and general betweenness centrality
  '''
 
+import random
 from collections import deque
 
 class BetCent:
@@ -16,7 +17,8 @@ class BetCent:
         self.nodes = nodes
         self.edges = edges
     
-    def bfs_shortest_paths(self, graph, start_node):
+    # def bfs_shortest_paths(self, graph, start_node, min_severity_nodes=1):
+    def bfs_shortest_paths(self, graph, start_node, keep_prop=0.5):
         ''' BFS to find shortest paths in a directed graph
         
         '''
@@ -40,23 +42,53 @@ class BetCent:
                 elif distances[ngb] == distances[node] + 1:
                     # add more paths of the same shortest length
                     paths[ngb].extend([path + [ngb] for path in paths[node]]) 
+        
+        # filtered_paths = {node: [p for p in paths[node] if self.has_severity(p, min_severity_nodes)] for node in paths}
+        filtered_paths = self.filter_paths(paths, keep_prop)
 
-        return distances, paths
+        return distances, filtered_paths
     
-    def cal_between_cent(self, max_iters=100, tolerance=1e-6):
+
+    def has_severity(self, path, min_count):
+        # filter paths to remove thoes that don't meet the minimum severity requirement
+        # count how many nodes in the path(excluding start/end) have severity
+        seve_count = sum(1 for node in path[1:-1] if "severity" in self.nodes[node])
+        return seve_count >= min_count
+
+
+    def filter_paths(self, paths, keep_prop):
+        ''' Filters paths based on the presence of severity nodes, keeping a proportion of paths without severity. '''
+        filtered = {}
+        for node, path_list in paths.items():
+            # Separate paths into those with and without severity
+            with_severity = [p for p in path_list if any("severity" in self.nodes[n] for n in p[1:-1])]
+            without_severity = [p for p in path_list if not any("severity" in self.nodes[n] for n in p[1:-1])]
+            
+            # Keep a proportion of the paths without severity
+            to_keep_count = int(len(without_severity) * keep_prop)
+            selected_without_severity = random.sample(without_severity, min(to_keep_count, len(without_severity)))
+
+            # Combine filtered paths
+            filtered[node] = with_severity + selected_without_severity
+        
+        return filtered
+
+
+    def cal_between_cent(self, prop=0.5,max_iters=100, tolerance=1e-6):
         # create adj list and extract node weights, filtering only nodes with CVE info
         graph = {node_id: [] for node_id, node in self.nodes.items() if "severity" in node}
         for source, target, _ in self.edges:
             if source in graph and target in graph:
                 graph[source].append(target)
-                # graph[target].append(source)
+                # ignore the direction here
+                graph[target].append(source)
         
         between_cent = {node: 0 for node in self.nodes}
 
         # iterate over all pairs of nodes and count shortest 
         # paths that pass through each node
         for start in graph:
-            _, paths = self.bfs_shortest_paths(graph, start)
+            _, paths = self.bfs_shortest_paths(graph, start, prop)
 
             for end in graph:
                 if end != start and paths[end]:
@@ -69,6 +101,7 @@ class BetCent:
         # Sort nodes by centrality and return the top 10
         top_10 = sorted(between_cent.items(), key=lambda x: x[1], reverse=True)[:10]
         return top_10
+    
     
 
 if __name__ == "__main__":
@@ -215,4 +248,13 @@ if __name__ == "__main__":
     ]
 
     betcenter = BetCent(nodes, edges)
-    print(betcenter.cal_between_cent())
+
+    results = {}
+    for prop in [0.1 * i for i in range(1, 10)]:
+        top_10 = betcenter.cal_between_cent(prop=prop)
+        results[prop] = top_10
+    
+    # Print results
+    for prop, top_10 in results.items():
+        print(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")
+    # print(betcenter.cal_between_cent())
