@@ -7,6 +7,8 @@
 
 import random
 from collections import deque
+import networkx as nx
+
 
 class BetCent:
     def __init__(self, nodes, edges):
@@ -74,20 +76,24 @@ class BetCent:
         return filtered
 
 
-    def cal_between_cent(self, prop=0.5,max_iters=100, tolerance=1e-6):
+    def cal_between_cent(self, prop=0.5, max_iters=100, tolerance=1e-6):
+    # def cal_between_cent(self, min_severity_nodes=1, max_iters=100, tolerance=1e-6):
         # create adj list and extract node weights, filtering only nodes with CVE info
         graph = {node_id: [] for node_id, node in self.nodes.items() if "severity" in node}
+        # graph = {node_id: [] for node_id in self.nodes.keys()}
         for source, target, _ in self.edges:
-            if source in graph and target in graph:
+            if source in graph or target in graph:
                 graph[source].append(target)
                 # ignore the direction here
                 graph[target].append(source)
         
+
         between_cent = {node: 0 for node in self.nodes}
 
         # iterate over all pairs of nodes and count shortest 
         # paths that pass through each node
         for start in graph:
+            # _, paths = self.bfs_shortest_paths(graph, start, min_severity_nodes)
             _, paths = self.bfs_shortest_paths(graph, start, prop)
 
             for end in graph:
@@ -102,7 +108,71 @@ class BetCent:
         top_10 = sorted(between_cent.items(), key=lambda x: x[1], reverse=True)[:10]
         return top_10
     
-    
+    def cal_between_cent_nx(self, proportion_without_severity=0.5):
+        G = nx.DiGraph()
+
+        # Step 1: Separate nodes into those with and without severity
+        nodes_with_severity = {node_id: attrs for node_id, attrs in self.nodes.items() if 'severity' in attrs}
+        nodes_without_severity = {node_id: attrs for node_id, attrs in self.nodes.items() if 'severity' not in attrs}
+
+        # Step 2: Add nodes with severity to the graph
+        for node_id, attrs in nodes_with_severity.items():
+            G.add_node(node_id, **attrs)
+
+        # Step 3: Determine how many nodes without severity to include
+        num_nodes_with_severity = len(nodes_with_severity)
+        total_nodes_without_severity = len(nodes_without_severity)
+        num_nodes_to_include = int(total_nodes_without_severity * proportion_without_severity)
+
+        # Randomly select nodes without severity to include
+        selected_without_severity = random.sample(list(nodes_without_severity.keys()), min(num_nodes_to_include, total_nodes_without_severity))
+
+        # Step 4: Add the selected nodes without severity to the graph
+        for node_id in selected_without_severity:
+            G.add_node(node_id, **nodes_without_severity[node_id])
+
+        # Step 5: Add edges
+        for source, target, edge_attrs in self.edges:
+            if source in G or target in G:
+                G.add_edge(source, target, **edge_attrs)
+
+        # Step 6: Compute betweenness centrality for the filtered subgraph
+        betweenness_scores = nx.betweenness_centrality(G)
+        # Step 5: Print the betweenness centrality scores
+        top_n = 10
+        sorted_betweenness = sorted(betweenness_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        return sorted_betweenness
+
+    # def caL_between_cent_nx(self):
+
+    #     G = nx.DiGraph()
+    #     # G = nx.Graph()
+
+    #     # Step 2: Add nodes (optional, networkx adds them automatically with edges)
+    #     for node_id, attrs in nodes.items():
+    #         G.add_node(node_id, **attrs)
+
+    #     # Step 3: Add edges
+    #     for source, target, edge_attrs in edges:
+    #         G.add_edge(source, target, **edge_attrs)
+
+    #     # Step 4: Filter nodes that have the "severity" attribute
+    #     severity_nodes = [n for n, attrs in G.nodes(data=True) if 'severity' in attrs]
+
+    #     # Step 5: Create a subgraph with only nodes that have severity
+    #     severity_subgraph = G.subgraph(severity_nodes)
+
+    #     # Step 6: Compute betweenness centrality for the filtered subgraph
+    #     betweenness_scores = nx.betweenness_centrality(severity_subgraph)
+
+    #     # Step 4: Compute betweenness centrality
+    #     # betweenness_scores = nx.betweenness_centrality(G)
+
+    #     # Step 5: Print the betweenness centrality scores
+    #     top_n = 10
+    #     sorted_betweenness = sorted(betweenness_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+    #     return sorted_betweenness
+
 
 if __name__ == "__main__":
     # Example nodes with detailed attributes
@@ -138,19 +208,11 @@ if __name__ == "__main__":
         "labels": ":Artifact",
         "id": "com.app.feature:networking",
         "found": "true",
-        "severity": "LOW",
-        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "25000000000"},
-        "popularity": 1100,
-        "speed": 0.60
     },
     "n4": {
         "labels": ":Artifact",
         "id": "org.package:ui-components",
         "found": "false",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "18000000000"},
-        "popularity": 1350,
-        "speed": 0.82
     },
     "n5": {
         "labels": ":Artifact",
@@ -179,10 +241,6 @@ if __name__ == "__main__":
         "labels": ":Artifact",
         "id": "com.example.module:parser",
         "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "15000000000"},
-        "popularity": 1120,
-        "speed": 0.80
     },
     "n9": {
         "labels": ":Artifact",
@@ -206,10 +264,6 @@ if __name__ == "__main__":
         "labels": ":Artifact",
         "id": "com.newfeature.module:video-processor",
         "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "16000000000"},
-        "popularity": 1450,
-        "speed": 0.86
     },
     "n12": {
         "labels": ":Artifact",
@@ -249,12 +303,16 @@ if __name__ == "__main__":
 
     betcenter = BetCent(nodes, edges)
 
-    results = {}
-    for prop in [0.1 * i for i in range(1, 10)]:
-        top_10 = betcenter.cal_between_cent(prop=prop)
-        results[prop] = top_10
+    top_10 = betcenter.caL_between_cent_nx()
+    print(top_10)
+
+    # results = {}
+    # for prop in [0.1 * i for i in range(1, 10)]:
+    #     top_10 = betcenter.cal_between_cent(prop=prop)
+    #     # top_10 = betcenter.cal_between_cent()
+    #     results[prop] = top_10
     
-    # Print results
-    for prop, top_10 in results.items():
-        print(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")
+    # # Print results
+    # for prop, top_10 in results.items():
+    #     print(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")
     # print(betcenter.cal_between_cent())

@@ -50,14 +50,20 @@ class EigenCent:
         self.features = features
         self.severity_map = severity_map
         # Create the graph skeleton with nodes that have severity > 0
-        self.graph = {node: [] for node, attrs in nodes.items() if self._get_severity(attrs) > 0}
+        # self.graph = {node: [] for node, attrs in nodes.items() if self._get_severity(attrs) > 0}
+        self.graph = {node: [] for node in nodes.keys()}
 
         # create the graph skeleton 
+        # for source, target, _ in edges:
+        #     # consider both incoming and outcoming edges for eigenvector
+        #     if target in self.graph and source in self.graph:
+        #         self.graph[target].append(source)
+        #         self.graph[source].append(target)
+
         for source, target, _ in edges:
             # consider both incoming and outcoming edges for eigenvector
-            if target in self.graph and source in self.graph:
-                self.graph[target].append(source)
-                self.graph[source].append(target)
+            self.graph[target].append(source)
+            self.graph[source].append(target)
 
     def _get_severity(self, node):
         ''' convert severity string to numeric value
@@ -221,7 +227,9 @@ class EigenCent:
         # sign_attrs = corr_results["indegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
         sign_attrs = corr_results["degree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
         # sign_attrs.remove("indegree")
-        sign_attrs.remove("degree")
+        if "degree" in sign_attrs:
+            sign_attrs.remove("degree")
+    
         logger.info(f"Left important features after correlation analyis are: {sign_attrs}")
 
         # run step-wise regression using all features at once

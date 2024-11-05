@@ -695,3 +695,13 @@ Notes:
 2024-11-04 10:56:27,667 - __main__ - INFO - the pvalues for feature popularity is: nan
 2024-11-04 10:56:27,667 - __main__ - INFO - the pvalues for feature speed is: nan
 2024-11-04 10:56:27,668 - __main__ - INFO - the pvalues for feature severity is: nan
+2024-11-05 10:06:44,807 - __main__ - INFO - the pvalues for feature freshness is: nan
+2024-11-05 10:06:44,808 - __main__ - INFO - the pvalues for feature popularity is: nan
+2024-11-05 10:06:44,809 - __main__ - INFO - the pvalues for feature speed is: nan
+2024-11-05 10:06:44,809 - __main__ - INFO - the pvalues for feature severity is: nan
+2024-11-05 10:07:16,241 - __main__ - INFO - the pvalues for feature freshness is: nan
+2024-11-05 10:07:16,242 - __main__ - INFO - the pvalues for feature popularity is: nan
+2024-11-05 10:07:16,243 - __main__ - INFO - the pvalues for feature speed is: nan
+2024-11-05 10:07:16,244 - __main__ - INFO - the pvalues for feature severity is: nan
+2024-11-05 10:07:16,244 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-05 10:07:16,245 - __main__ - INFO - Left important features after step-wise regression are: []

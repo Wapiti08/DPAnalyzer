@@ -92,18 +92,25 @@ if __name__ == "__main__":
 
     # # ------ calculate the between_centrailty --------
     betcenter = between_cent.BetCent(nodes, edges)
-    results = {}
     
-    for prop in [0.1 *i for i in range(1,10)]:
-        top_between_cel = betcenter.cal_between_cent()
-        results[prop] = top_between_cel
+    top_between_cel = betcenter.cal_between_cent()
+    logger.info("The result with min_severity_threshold is:")
+    logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
+    logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
+
+
+    # results = {}
     
-    # Print results
-    for prop, top_10 in results.items():
-        logger.info(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")  
+    # for prop in [0.1 *i for i in range(1,10)]:
+    #     top_between_cel = betcenter.cal_between_cent()
+    #     results[prop] = top_between_cel
+    
+    # # Print results
+    # for prop, top_10 in results.items():
+    #     logger.info(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")  
         
-    for prop, top_between_cel in results.items():
-        logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
+    # for prop, top_between_cel in results.items():
+    #     logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
 
     # ------ calculate the eigenvector centrality ------
 
