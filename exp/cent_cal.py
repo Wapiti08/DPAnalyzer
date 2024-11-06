@@ -91,26 +91,35 @@ if __name__ == "__main__":
     # logger.info(f"the top 10 node ids with highest degree centrality are: {match_top_nodes_to_ids(top_degree_cel, nodes)}")
 
     # # ------ calculate the between_centrailty --------
+    print("the length of nodes is:", len(list(nodes.keys())))
+    print("the length of edges is:", len(edges))
     betcenter = between_cent.BetCent(nodes, edges)
     
-    top_between_cel = betcenter.cal_between_cent()
-    logger.info("The result with min_severity_threshold is:")
-    logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
-    logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
+    # top_between_cel = betcenter.cal_between_cent()
+    # logger.info("The result with min_severity_threshold is:")
+    # logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
+    # logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
+
+    for prop in [0.1 *i for i in range(1,10)]:
+        top_between_cel = betcenter.cal_between_cent_nx(proportion_without_severity = prop)
+        results[prop] = top_between_cel
+    # logger.info("The result with min_severity_threshold is:")
+    # logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
+    # logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
 
 
     # results = {}
     
     # for prop in [0.1 *i for i in range(1,10)]:
-    #     top_between_cel = betcenter.cal_between_cent()
+    #     top_between_cel = betcenter.cal_between_cent(prop)
     #     results[prop] = top_between_cel
     
-    # # Print results
-    # for prop, top_10 in results.items():
-    #     logger.info(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")  
+    # Print results
+    for prop, top_10 in results.items():
+        logger.info(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")  
         
-    # for prop, top_between_cel in results.items():
-    #     logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
+    for prop, top_between_cel in results.items():
+        logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
 
     # ------ calculate the eigenvector centrality ------
 

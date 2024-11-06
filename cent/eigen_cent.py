@@ -275,6 +275,27 @@ class EigenCent:
         self._speed_proc()
         self._popu_proc()
 
+    def cal_weighted_eigen_cent_nx(self, ):
+        G = nx.DiGraph()
+
+        # Add nodes with custom weights as attributes
+        for nid, node in self.nodes.items():
+            weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
+            G.add_node(nid, weight=weights)
+
+        # Add edges for incoming relationships (directed)
+        for source, target, _ in self.edges:
+            if target in self.nodes and source in self.nodes:
+                G.add_edge(source, target)
+
+        # Calculate eigenvector centrality with weight
+        centrality = nx.eigenvector_centrality(G, max_iter=1000, tol=1e-06, weight="weight")
+
+        # Store top 10 nodes by centrality score
+        top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
+        
+        return top_cents
+
 
     def cal_weighted_eigen_cent(self, max_iterations=100, tolerance=1e-6):
         ''' the attributes of original nodes have been quantified into numeric features as weight
@@ -455,4 +476,5 @@ if __name__ == "__main__":
     eigencenter._weight_ana()
 
     # get the eigen centrality
-    print(eigencenter.cal_weighted_eigen_cent())
+    # print(eigencenter.cal_weighted_eigen_cent())
+    print(eigencenter.cal_weighted_eigen_cent_nx())
