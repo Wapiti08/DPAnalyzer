@@ -64,7 +64,7 @@ class EigenCent:
             # consider both incoming and outcoming edges for eigenvector
             self.graph[target].append(source)
             self.graph[source].append(target)
-
+        
     def _get_severity(self, node):
         ''' convert severity string to numeric value
         
@@ -104,11 +104,10 @@ class EigenCent:
                 data["speed"].append(node["SPEED"])
                 severity_value = self._get_severity(node)
                 data["severity"].append(severity_value)
-                data["indegree"].append(G.in_degree[nid] if nid in G.in_degree else 0)
-                data["degree"].append(G.in_degree[nid] if nid in G.in_degree else 0)
+                data["indegree"].append(G.in_degree(nid))
+                data["degree"].append(G.degree(nid))
 
         self.node_attr_df = pd.DataFrame(data)
-
 
     def _fresh_score(self,):
         ''' assume the attribute of freshness in nodes is a dict type
@@ -233,8 +232,9 @@ class EigenCent:
         logger.info(f"Left important features after correlation analyis are: {sign_attrs}")
 
         # run step-wise regression using all features at once
-        # self.node_attr_df = self.node_attr_df[sign_attrs + ["indegree"]]
-        self.node_attr_df = self.node_attr_df[sign_attrs + ["degree"]]
+        # df = self.node_attr_df[sign_attrs + ["indegree"]]
+        # create a new separate framework
+        df = self.node_attr_df[sign_attrs + ["degree"]]
         sele_features = self._step_wise_reg(reg_thres, sign_attrs)
         logger.info(f"Left important features after step-wise regression are: {sele_features}")
 
@@ -244,16 +244,16 @@ class EigenCent:
         total_contribution = 0
 
         for feature in sele_features:
-            X_single = self.node_attr_df[[feature]]
+            X_single = df[feature]
             X_single = sm.add_constant(X_single)
             # model = sm.OLS(self.node_attr_df["indegree"], X_single).fit()
-            model = sm.OLS(self.node_attr_df["degree"], X_single).fit()
+            model = sm.OLS(df["degree"], X_single).fit()
             contribution = model.rsquared
             contribution_scores[feature] = contribution
             total_contribution += contribution
 
         # Step 4: Convert individual contributions into a combined weight attribute
-        self.node_attr_df["weight"] = self.node_attr_df[sele_features].apply(
+        self.node_attr_df["weight"] = df[sele_features].apply(
             lambda row: sum(row[feature] * (contribution_scores[feature] / total_contribution) for feature in sele_features),
             axis=1
         )
@@ -277,7 +277,6 @@ class EigenCent:
 
     def cal_weighted_eigen_cent_nx(self, ):
         G = nx.DiGraph()
-
         # Add nodes with custom weights as attributes
         for nid, node in self.nodes.items():
             weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
@@ -439,9 +438,144 @@ if __name__ == "__main__":
         "labels": ":Artifact",
         "id": "com.future.module:audio-processor",
         "found": "false",
+        },
+    "n14": {
+        "labels": ":Artifact",
+        "id": "io.feature.module:language-lib",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "3000000000"},
+        "POPULARITY_1_YEAR": 1230,
+        "SPEED": 0.72
+    },
+    "n15": {
+        "labels": ":Artifact",
+        "id": "org.example.module:math-utils",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "8500000000"},
+        "POPULARITY_1_YEAR": 980,
+        "SPEED": 0.65
+    },
+    "n16": {
+        "labels": ":Artifact",
+        "id": "com.sample.feature:render-engine",
+        "found": "false",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "25000000000"},
+        "POPULARITY_1_YEAR": 1300,
+        "SPEED": 0.80
+    },
+    "n17": {
+        "labels": ":Artifact",
+        "id": "org.framework.module:crypto-lib",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "5000000000"},
+        "POPULARITY_1_YEAR": 1500,
+        "SPEED": 0.91
+    },
+    "n18": {
+        "labels": ":Artifact",
+        "id": "com.ui.module:icons",
+        "found": "false",
+    },
+    "n19": {
+        "labels": ":Artifact",
+        "id": "com.analytics.module:data-core",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "1", "outdatedTimeInMs": "1000000000"},
+        "POPULARITY_1_YEAR": 1050,
+        "SPEED": 0.75
+    },
+    "n20": {
+        "labels": ":Artifact",
+        "id": "org.cloud:service-layer",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "18000000000"},
+        "POPULARITY_1_YEAR": 1470,
+        "SPEED": 0.92
+    },
+    "n21": {
+        "labels": ":Artifact",
+        "id": "com.backend.module:cache",
+        "found": "false",
         "severity": "LOW",
-        "POPULARITY_1_YEAR": 1025,
-        }
+        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "6000000000"},
+        "POPULARITY_1_YEAR": 1100,
+        "SPEED": 0.68
+    },
+    "n22": {
+        "labels": ":Artifact",
+        "id": "com.frontend.module:form-handler",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "10000000000"},
+        "POPULARITY_1_YEAR": 1020,
+        "SPEED": 0.70
+    },
+    "n23": {
+        "labels": ":Artifact",
+        "id": "com.engine.module:render",
+        "found": "true",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "20000000000"},
+        "POPULARITY_1_YEAR": 1600,
+        "SPEED": 0.79
+    },
+    "n24": {
+        "labels": ":Artifact",
+        "id": "io.processing.module:image-processor",
+        "found": "false",
+    },
+    "n25": {
+        "labels": ":Artifact",
+        "id": "com.mobile.module:geo-locator",
+        "found": "true",
+        "severity": "LOW",
+        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "7500000000"},
+        "POPULARITY_1_YEAR": 900,
+        "SPEED": 0.55
+    },
+    "n26": {
+        "labels": ":Artifact",
+        "id": "org.sample.module:json-utils",
+        "found": "true",
+        "severity": "HIGH",
+        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "8000000000"},
+        "POPULARITY_1_YEAR": 1200,
+        "SPEED": 0.88
+    },
+    "n27": {
+        "labels": ":Artifact",
+        "id": "com.library.module:xml-parser",
+        "found": "false",
+        "severity": "CRITICAL",
+        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "22000000000"},
+        "POPULARITY_1_YEAR": 1300,
+        "SPEED": 0.78
+    },
+    "n28": {
+        "labels": ":Artifact",
+        "id": "org.io.module:compression",
+        "found": "true",
+        "severity": "MODERATE",
+        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "1000000000"},
+        "POPULARITY_1_YEAR": 1150,
+        "SPEED": 0.84
+    },
+    "n29": {
+        "labels": ":Artifact",
+        "id": "com.temp.module:validation",
+        "found": "true",
+    },
+    "n30": {
+        "labels": ":Artifact",
+        "id": "org.ui.module:animations",
+        "found": "false",
+    }
     }
 
 
@@ -462,6 +596,23 @@ if __name__ == "__main__":
         ("n3", "n10", {"label": "relationship_AR"}),
         ("n12", "n13", {"label": "relationship_AR"}),
         ("n5", "n8", {"label": "relationship_AR"}),
+        ("n14", "n15", {"label": "relationship_AR"}),
+        ("n15", "n16", {"label": "relationship_AR"}),
+        ("n17", "n5", {"label": "relationship_AR"}),
+        ("n18", "n6", {"label": "relationship_AR"}),
+        ("n19", "n20", {"label": "relationship_AR"}),
+        ("n21", "n22", {"label": "relationship_AR"}),
+        ("n23", "n24", {"label": "relationship_AR"}),
+        ("n25", "n26", {"label": "relationship_AR"}),
+        ("n26", "n27", {"label": "relationship_AR"}),
+        ("n28", "n29", {"label": "relationship_AR"}),
+        ("n9", "n30", {"label": "relationship_AR"}),
+        ("n13", "n21", {"label": "relationship_AR"}),
+        ("n11", "n23", {"label": "relationship_AR"}),
+        ("n24", "n19", {"label": "relationship_AR"}),
+        ("n18", "n10", {"label": "relationship_AR"}),
+        ("n22", "n14", {"label": "relationship_AR"})
+            
     ]
 
     att_features = ["freshness", "popularity", "speed", "severity"]
