@@ -8,6 +8,7 @@
 import random
 from collections import deque
 import networkx as nx
+import json
 
 
 class BetCent:
@@ -19,8 +20,16 @@ class BetCent:
         self.nodes = nodes
         self.edges = edges
     
-    # def bfs_shortest_paths(self, graph, start_node, min_severity_nodes=1):
-    def bfs_shortest_paths(self, graph, start_node, keep_prop=0.5):
+    def str_to_json(self, escaped_json_str):
+        try:
+            clean_str = escaped_json_str.replace('\\"', '"')
+            return json.loads(clean_str)
+        except ValueError as e:
+            print(f"Error parsing JSON: {e}")
+            return None
+
+    def bfs_shortest_paths(self, graph, start_node, min_severity_nodes=1):
+    # def bfs_shortest_paths(self, graph, start_node, keep_prop=0.5):
         ''' BFS to find shortest paths in a directed graph
         
         '''
@@ -45,8 +54,8 @@ class BetCent:
                     # add more paths of the same shortest length
                     paths[ngb].extend([path + [ngb] for path in paths[node]]) 
         
-        # filtered_paths = {node: [p for p in paths[node] if self.has_severity(p, min_severity_nodes)] for node in paths}
-        filtered_paths = self.filter_paths(paths, keep_prop)
+        filtered_paths = {node: [p for p in paths[node] if self.has_severity(p, min_severity_nodes)] for node in paths}
+        # filtered_paths = self.filter_paths(paths, keep_prop)
 
         return distances, filtered_paths
     
@@ -54,17 +63,23 @@ class BetCent:
     def has_severity(self, path, min_count):
         # filter paths to remove thoes that don't meet the minimum severity requirement
         # count how many nodes in the path(excluding start/end) have severity
-        seve_count = sum(1 for node in path[1:-1] if "severity" in self.nodes[node])
+        
+        seve_count = sum(1 for node in path[1:-1] if self.cve_check(self.nodes[node]))
         return seve_count >= min_count
 
+    def cve_check(self, node:dict):
+        if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
+            return True
+        else:
+            return False
 
     def filter_paths(self, paths, keep_prop):
         ''' Filters paths based on the presence of severity nodes, keeping a proportion of paths without severity. '''
         filtered = {}
         for node, path_list in paths.items():
             # Separate paths into those with and without severity
-            with_severity = [p for p in path_list if any("severity" in self.nodes[n] for n in p[1:-1])]
-            without_severity = [p for p in path_list if not any("severity" in self.nodes[n] for n in p[1:-1])]
+            with_severity = [p for p in path_list if any(self.cve_check(self.nodes[n]) for n in p[1:-1])]
+            without_severity = [p for p in path_list if not any(self.cve_check(self.nodes[n]) for n in p[1:-1])]
             
             # Keep a proportion of the paths without severity
             to_keep_count = int(len(without_severity) * keep_prop)
@@ -79,7 +94,8 @@ class BetCent:
     def cal_between_cent(self, prop=0.5, max_iters=100, tolerance=1e-6):
     # def cal_between_cent(self, min_severity_nodes=1, max_iters=100, tolerance=1e-6):
         # create adj list and extract node weights, filtering only nodes with CVE info
-        graph = {node_id: [] for node_id, node in self.nodes.items() if "severity" in node}
+        graph = {node_id: [] for node_id, node in self.nodes.items() if self.cve_check(node)}
+
         # graph = {node_id: [] for node_id in self.nodes.keys()}
         for source, target, _ in self.edges:
             if source in graph or target in graph:
@@ -108,12 +124,34 @@ class BetCent:
         top_10 = sorted(between_cent.items(), key=lambda x: x[1], reverse=True)[:10]
         return top_10
     
+    def cal_between_cent_seve_nx(self,):
+        G = nx.DiGraph()
+
+        # Step 1: Separate nodes into those with and without severity
+        nodes_with_severity = {node_id: attrs for node_id, attrs in self.nodes.items() if self.cve_check(attrs)}
+
+        # Step 2: Add nodes with severity to the graph
+        for node_id, attrs in nodes_with_severity.items():
+            G.add_node(node_id, **attrs)
+
+        for source, target, edge_attrs in self.edges:
+            if source in G or target in G:
+                G.add_edge(source, target, **edge_attrs)
+
+        # Step 6: Compute betweenness centrality for the filtered subgraph
+        betweenness_scores = nx.betweenness_centrality(G)
+        # Step 5: Print the betweenness centrality scores
+        top_n = 10
+        sorted_betweenness = sorted(betweenness_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        return sorted_betweenness
+
+
     def cal_between_cent_nx(self, proportion_without_severity=0.5):
         G = nx.DiGraph()
 
         # Step 1: Separate nodes into those with and without severity
-        nodes_with_severity = {node_id: attrs for node_id, attrs in self.nodes.items() if 'severity' in attrs}
-        nodes_without_severity = {node_id: attrs for node_id, attrs in self.nodes.items() if 'severity' not in attrs}
+        nodes_with_severity = {node_id: attrs for node_id, attrs in self.nodes.items() if self.cve_check(attrs)}
+        nodes_without_severity = {node_id: attrs for node_id, attrs in self.nodes.items() if self.cve_check(attrs)}
 
         # Step 2: Add nodes with severity to the graph
         for node_id, attrs in nodes_with_severity.items():
@@ -143,169 +181,37 @@ class BetCent:
         sorted_betweenness = sorted(betweenness_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
         return sorted_betweenness
 
-    # def caL_between_cent_nx(self):
-
-    #     G = nx.DiGraph()
-    #     # G = nx.Graph()
-
-    #     # Step 2: Add nodes (optional, networkx adds them automatically with edges)
-    #     for node_id, attrs in nodes.items():
-    #         G.add_node(node_id, **attrs)
-
-    #     # Step 3: Add edges
-    #     for source, target, edge_attrs in edges:
-    #         G.add_edge(source, target, **edge_attrs)
-
-    #     # Step 4: Filter nodes that have the "severity" attribute
-    #     severity_nodes = [n for n, attrs in G.nodes(data=True) if 'severity' in attrs]
-
-    #     # Step 5: Create a subgraph with only nodes that have severity
-    #     severity_subgraph = G.subgraph(severity_nodes)
-
-    #     # Step 6: Compute betweenness centrality for the filtered subgraph
-    #     betweenness_scores = nx.betweenness_centrality(severity_subgraph)
-
-    #     # Step 4: Compute betweenness centrality
-    #     # betweenness_scores = nx.betweenness_centrality(G)
-
-    #     # Step 5: Print the betweenness centrality scores
-    #     top_n = 10
-    #     sorted_betweenness = sorted(betweenness_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
-    #     return sorted_betweenness
-
 
 if __name__ == "__main__":
     # Example nodes with detailed attributes
     nodes = {
-    "n0": {
-        "labels": ":Artifact",
-        "id": "com.splendo.kaluga:alerts-androidlib",
-        "found": "true",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "18691100000"},
-        "popularity": 1500,
-        "speed": 0.85
-    },
-    "n1": {
-        "labels": ":Artifact",
-        "id": "com.example:core-utils",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "1000000000"},
-        "popularity": 1200,
-        "speed": 0.75
-    },
-    "n2": {
-        "labels": ":Artifact",
-        "id": "org.sample:logging-lib",
-        "found": "false",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "5000000000"},
-        "popularity": 980,
-        "speed": 0.90
-    },
-    "n3": {
-        "labels": ":Artifact",
-        "id": "com.app.feature:networking",
-        "found": "true",
-    },
-    "n4": {
-        "labels": ":Artifact",
-        "id": "org.package:ui-components",
-        "found": "false",
-    },
-    "n5": {
-        "labels": ":Artifact",
-        "id": "io.module:analytics-core",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "1", "outdatedTimeInMs": "2000000000"},
-        "popularity": 1570,
-        "speed": 0.95
-    },
-    "n6": {
-        "labels": ":Artifact",
-        "id": "com.system.library:security",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "7000000000"},
-        "popularity": 1440,
-        "speed": 0.88
-    },
-    "n7": {
-        "labels": ":Artifact",
-        "id": "org.framework:database",
-        "found": "false",
-    },
-    "n8": {
-        "labels": ":Artifact",
-        "id": "com.example.module:parser",
-        "found": "true",
-    },
-    "n9": {
-        "labels": ":Artifact",
-        "id": "org.utility:config",
-        "found": "false",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "8500000000"},
-        "popularity": 1550,
-        "speed": 0.78
-    },
-    "n10": {
-        "labels": ":Artifact",
-        "id": "com.example.new:auth-lib",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "8", "outdatedTimeInMs": "12000000000"},
-        "popularity": 1000,
-        "speed": 0.70
-    },
-    "n11": {
-        "labels": ":Artifact",
-        "id": "com.newfeature.module:video-processor",
-        "found": "true",
-    },
-    "n12": {
-        "labels": ":Artifact",
-        "id": "org.temp.module:chat-lib",
-        "found": "false",
-    },
-    "n13": {
-        "labels": ":Artifact",
-        "id": "com.future.module:audio-processor",
-        "found": "false",
-        "severity": "LOW",
-        "freshness": None,
-        "popularity": 1025,
-        "speed": None
-        }
+    "n0": {'labels': ':AddedValue', 
+         'id': 'org.keycloak:keycloak-core:3.4.1.Final:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-267]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2019-10170\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-0225\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1697\\"},{\\"cwe\\":\\"[CWE-547,CWE-798]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2019-14837\\"},{\\"cwe\\":\\"[CWE-306]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-20262\\"},{\\"cwe\\":\\"[CWE-1021]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1728\\"},{\\"cwe\\":\\"[CWE-285,CWE-287]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2018-14637\\"},{\\"cwe\\":\\"[CWE-276]\\",\\"severity\\":\\"LOW\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-285]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-10686\\"},{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-1714\\"},{\\"cwe\\":\\"[CWE-287,CWE-841]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-613]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1724\\"},{\\"cwe\\":\\"[CWE-835]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2018-10912\\"},{\\"cwe\\":\\"[CWE-287]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-27838\\"},{\\"cwe\\":\\"[CWE-287,CWE-841]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-0105\\"},{\\"cwe\\":\\"[CWE-200,CWE-755]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1744\\"},{\\"cwe\\":\\"[CWE-295,CWE-345]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-3875\\"},{\\"cwe\\":\\"[CWE-601]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-200,CWE-532]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1698\\"},{\\"cwe\\":\\"[CWE-863]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-1466\\"},{\\"cwe\\":\\"[CWE-200]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-14820\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-250]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-27826\\"},{\\"cwe\\":\\"[CWE-377]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2021-20202\\"},{\\"cwe\\":\\"[CWE-330,CWE-341]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2020-1731\\"},{\\"cwe\\":\\"[CWE-80]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-0225\\"},{\\"cwe\\":\\"[CWE-645]\\",\\"severity\\":\\"LOW\\",\\"name\\":\\"CVE-2024-1722\\"},{\\"cwe\\":\\"[CWE-200]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-3868\\"},{\\"cwe\\":\\"[CWE-287]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2021-3632\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-35509\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-601,CWE-918]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-10770\\"},{\\"cwe\\":\\"[CWE-20,CWE-352]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2019-10199\\"},{\\"cwe\\":\\"[CWE-347]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-10201\\"},{\\"cwe\\":\\"[CWE-284,CWE-863]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-0091\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-1664\\"},{\\"cwe\\":\\"[CWE-602]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2017-12161\\"},{\\"cwe\\":\\"[CWE-116,CWE-20,CWE-79]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2021-20195\\"},{\\"cwe\\":\\"[CWE-22,CWE-552]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-3856\\"},{\\"cwe\\":\\"[CWE-269,CWE-916]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-14389\\"},{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-3754\\"}]}'
+         },
+    "n1":  {'labels': ':AddedValue', 
+            'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+            },
+    "n2": {'labels': ':AddedValue', 
+           'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
     }
-
 
 
     # Example edges
     edges = [
         ("n1", "n2", {"label": "relationship_AR"}),
         ("n1", "n3", {"label": "relationship_AR"}),
-        ("n2", "n4", {"label": "relationship_AR"}),
-        ("n5", "n1", {"label": "relationship_AR"}),
-        ("n5", "n6", {"label": "relationship_AR"}),
-        ("n3", "n7", {"label": "relationship_AR"}),
-        ("n8", "n9", {"label": "relationship_AR"}),
-        ("n2", "n10", {"label": "relationship_AR"}),
-        ("n10", "n11", {"label": "relationship_AR"}),
-        ("n11", "n12", {"label": "relationship_AR"}),
-        ("n7", "n13", {"label": "relationship_AR"}),
-        ("n3", "n10", {"label": "relationship_AR"}),
-        ("n12", "n13", {"label": "relationship_AR"}),
-        ("n5", "n8", {"label": "relationship_AR"}),
     ]
 
     betcenter = BetCent(nodes, edges)
 
-    top_10 = betcenter.caL_between_cent_nx()
-    print(top_10)
+    top_10 = betcenter.cal_between_cent_nx()
+    print("top 10 with prop:",top_10)
 
+    top_10 = betcenter.cal_between_cent_seve_nx()
+    print("top 10 with min cve:",top_10)
     # results = {}
     # for prop in [0.1 * i for i in range(1, 10)]:
     #     top_10 = betcenter.cal_between_cent(prop=prop)

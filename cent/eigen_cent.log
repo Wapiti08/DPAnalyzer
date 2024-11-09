@@ -831,3 +831,21 @@ Notes:
 2024-11-07 12:16:44,908 - __main__ - INFO - the pvalues for feature severity is: 0.7707124448343632
 2024-11-07 12:16:44,909 - __main__ - INFO - Left important features after correlation analyis are: []
 2024-11-07 12:16:44,909 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-07 13:12:07,092 - __main__ - INFO - the pvalues for feature freshness is: 0.9371472175897569
+2024-11-07 13:12:07,093 - __main__ - INFO - the pvalues for feature popularity is: 0.7410472590027883
+2024-11-07 13:12:07,094 - __main__ - INFO - the pvalues for feature speed is: 0.9078797666154695
+2024-11-07 13:12:07,095 - __main__ - INFO - the pvalues for feature severity is: 0.7707124448343632
+2024-11-07 13:12:07,095 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-07 13:12:07,095 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-07 13:20:38,104 - __main__ - INFO - the pvalues for feature freshness is: 0.9371472175897569
+2024-11-07 13:20:38,106 - __main__ - INFO - the pvalues for feature popularity is: 0.7410472590027883
+2024-11-07 13:20:38,107 - __main__ - INFO - the pvalues for feature speed is: 0.9078797666154695
+2024-11-07 13:20:38,109 - __main__ - INFO - the pvalues for feature severity is: 0.7707124448343632
+2024-11-07 13:20:38,109 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-07 13:20:38,110 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-07 13:21:24,239 - __main__ - INFO - the pvalues for feature freshness is: 0.9371472175897569
+2024-11-07 13:21:24,241 - __main__ - INFO - the pvalues for feature popularity is: 0.7410472590027883
+2024-11-07 13:21:24,242 - __main__ - INFO - the pvalues for feature speed is: 0.9078797666154695
+2024-11-07 13:21:24,243 - __main__ - INFO - the pvalues for feature severity is: 0.7707124448343632
+2024-11-07 13:21:24,244 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-07 13:21:24,244 - __main__ - INFO - Left important features after step-wise regression are: []

@@ -18,6 +18,8 @@ import pandas as pd
 import statsmodels.api as sm
 import networkx as nx
 import logging
+import numpy as np
+import json
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -50,8 +52,8 @@ class EigenCent:
         self.features = features
         self.severity_map = severity_map
         # Create the graph skeleton with nodes that have severity > 0
-        # self.graph = {node: [] for node, attrs in nodes.items() if self._get_severity(attrs) > 0}
-        self.graph = {node: [] for node in nodes.keys()}
+        self.graph = {node: [] for node, attrs in nodes.items() if self._get_sum_severity(attrs) > 0}
+        # self.graph = {node: [] for node in nodes.keys()}
 
         # create the graph skeleton 
         # for source, target, _ in edges:
@@ -62,15 +64,111 @@ class EigenCent:
 
         for source, target, _ in edges:
             # consider both incoming and outcoming edges for eigenvector
-            self.graph[target].append(source)
+            # self.graph[target].append(source)
             self.graph[source].append(target)
-        
-    def _get_severity(self, node):
-        ''' convert severity string to numeric value
+    
+    def str_to_json(self, escaped_json_str):
+        try:
+            clean_str = escaped_json_str.replace('\\"', '"')
+            return json.loads(clean_str)
+        except ValueError as e:
+            print(f"Error parsing JSON: {e}")
+            return None
+
+    def cve_check(self, node:dict):
+        if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
+            return True
+        else:
+            return False
+
+    def _get_sum_severity(self, node):
+        ''' convert severity string to numeric value and sum all severities
         
         '''
-        severity_str = node.get("severity", None)
-        return self.severity_map.get(severity_str, 0) if severity_str else 0
+        # get the list
+        if self.cve_check(node):
+            cve_list = self.str_to_json(node["value"])['cve']
+        else:
+            return 0
+        # get the string value in every list
+        cve_seve_str_list = [cve["severity"] for cve in cve_list]
+        # sum all the converted value
+        sum_seve_score = sum([self.severity_map.get(cve_str,0) for cve_str in cve_seve_str_list])
+        return sum_seve_score
+
+    def _fresh_score(self,):
+        ''' assume the attribute of freshness in nodes is a dict type
+        
+        use simple min-max normalization to scale the value into [0,1]
+        '''
+        # prepare a list to save processed node data
+        processed_data = []
+
+        # extract freshness values and handle missing cases
+        for id, node in self.nodes.items():
+            if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+                # convert string to json
+                node = self.str_to_json(node["value"])
+                numberMissedRelease = int(node["freshness"]["numberMissedRelease"])
+                outdatedTimeInMs = int(node["freshness"]["outdatedTimeInMs"])
+            else:
+                numberMissedRelease = 0
+                outdatedTimeInMs = 0
+            
+            # add to processed data --- in order to implemented dataframe-orient manipulation
+            processed_data.append(
+                {
+                    "id": node['id'],
+                    'numberMissedRelease': numberMissedRelease,
+                    "outdatedTimeInMs": outdatedTimeInMs
+                }
+            )
+        # create a dataframe
+        df = pd.DataFrame(processed_data)
+
+        # normalize the attributes with min-max normalization
+        df["Normalized_Missed"] = (df['numberMissedRelease'] - df["numberMissedRelease"].min()) / \
+                                    (df['numberMissedRelease'].max() - df["numberMissedRelease"].min())
+        df['Normalized_Outdated'] = (df['outdatedTimeInMs'] - df['outdatedTimeInMs'].min()) / \
+                                    (df['outdatedTimeInMs'].max() - df['outdatedTimeInMs'].min())
+
+
+        # define weights for freshness calculation
+        w1, w2 = 0.5, 0.5
+
+        # calculate freshness score
+        df['freshness_score'] = w1 * df['Normalized_Missed'] + w2 * df['Normalized_Outdated']
+        # map the freshness scores back to the original nodes
+        for i, node in enumerate(self.nodes.values()):
+            node["freshness_score"] = df.loc[i, 'freshness_score']
+
+    def _popu_proc(self,):
+        ''' process potential missing popularity
+        
+        '''
+        for id, node in self.nodes.items():
+            if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+                node["POPULARITY_1_YEAR"] = int(node["value"])
+            else:
+                node["POPULARITY_1_YEAR"] = 0
+        
+    def _speed_proc(self,):
+        ''' process potential missing popularity
+        
+        '''
+        for id, node in self.nodes.items():
+            if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+                 node["SPEED"] = int(node["value"])
+            else:
+                node["SPEED"] = 0
+    
+    def _quan_attrs(self,):
+        ''' initialize quantify attributes of nodes
+        
+        '''
+        self._fresh_score()
+        self._speed_proc()
+        self._popu_proc()
 
     def _covt_df(self,):
         ''' covert nodes to node based dataframe
@@ -102,72 +200,13 @@ class EigenCent:
                 data["freshness"].append(node["freshness_score"])
                 data["popularity"].append(node["POPULARITY_1_YEAR"])
                 data["speed"].append(node["SPEED"])
-                severity_value = self._get_severity(node)
+                severity_value = self._get_sum_severity(node)
                 data["severity"].append(severity_value)
                 data["indegree"].append(G.in_degree(nid))
                 data["degree"].append(G.degree(nid))
 
         self.node_attr_df = pd.DataFrame(data)
-
-    def _fresh_score(self,):
-        ''' assume the attribute of freshness in nodes is a dict type
-        
-        use simple min-max normalization to scale the value into [0,1]
-        '''
-        # prepare a list to save processed node data
-        processed_data = []
-
-        # extract freshness values and handle missing cases
-        for id, node in self.nodes.items():
-            if "freshness" in node:
-                numberMissedRelease = int(node["freshness"].get("numberMissedRelease", 0))
-                outdatedTimeInMs = int(node["freshness"].get("outdatedTimeInMs", 0))
-            else:
-                numberMissedRelease = 0
-                outdatedTimeInMs = 0
-            
-            # add to processed data --- in order to implemented dataframe-orient manipulation
-            processed_data.append(
-                {
-                    "id": node['id'],
-                    'numberMissedRelease': numberMissedRelease,
-                    "outdatedTimeInMs": outdatedTimeInMs
-                }
-            )
-        
-        # create a dataframe
-        df = pd.DataFrame(processed_data)
-
-        # normalize the attributes with min-max normalization
-        df["Normalized_Missed"] = (df['numberMissedRelease'] - df["numberMissedRelease"].min()) / \
-                                    (df['numberMissedRelease'].max() - df["numberMissedRelease"].min())
-        df['Normalized_Outdated'] = (df['outdatedTimeInMs'] - df['outdatedTimeInMs'].min()) / \
-                                    (df['outdatedTimeInMs'].max() - df['outdatedTimeInMs'].min())
-
-
-        # define weights for freshness calculation
-        w1, w2 = 0.5, 0.5
-
-        # calculate freshness score
-        df['freshness_score'] = w1 * df['Normalized_Missed'] + w2 * df['Normalized_Outdated']
-    
-        # map the freshness scores back to the original nodes
-        for i, node in enumerate(self.nodes.values()):
-            node["freshness_score"] = df.loc[i, 'freshness_score']
-    
-    def _popu_proc(self,):
-        ''' process potential missing popularity
-        
-        '''
-        for id, node in self.nodes.items():
-            node["POPULARITY_1_YEAR"] = node.get("POPULARITY_1_YEAR", 0)
-        
-    def _speed_proc(self,):
-        ''' process potential missing popularity
-        
-        '''
-        for id, node in self.nodes.items():
-            node["SPEED"] = node.get("SPEED", 0)
+   
 
     def _corr_ana(self,):
         ''' using pandas to perform correlation analysis between severity, freshness, 
@@ -199,6 +238,18 @@ class EigenCent:
                 X_train = self.node_attr_df[features]
                 # add constant term for intercept
                 X_train = sm.add_constant(X_train)
+                # Drop rows where X_train or y contains NaN or inf values
+                # valid_idx = X_train.apply(lambda x: np.isfinite(x)).all(axis=1) & np.isfinite(y)
+                # X_train = X_train[valid_idx]
+                # y_valid = y[valid_idx]
+
+                # # Check if X_train and y are not empty after dropping invalid rows
+                # if X_train.empty or y_valid.empty:
+                #     continue
+
+                X_train = np.asarray(X_train)
+                y = np.asarray(y)
+
                 model = sm.OLS(y, X_train).fit()
                 p_value = model.pvalues[feature]
                 logger.info(f"the pvalues for feature {feature} is: {p_value}")
@@ -266,15 +317,6 @@ class EigenCent:
 
         return self.node_attr_df[["weight"]]
 
-    
-    def _quan_attrs(self,):
-        ''' initialize quantify attributes of nodes
-        
-        '''
-        self._fresh_score()
-        self._speed_proc()
-        self._popu_proc()
-
     def cal_weighted_eigen_cent_nx(self, ):
         G = nx.DiGraph()
         # Add nodes with custom weights as attributes
@@ -333,287 +375,28 @@ class EigenCent:
 
 if __name__ == "__main__":
     # Example nodes with detailed attributes
+    # Example nodes with detailed attributes
     nodes = {
-    "n1": {
-        "labels": ":Artifact",
-        "id": "com.example:core-utils",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "1000000000"},
-        "POPULARITY_1_YEAR": 1200,
-        "SPEED": 0.75
-    },
-    "n2": {
-        "labels": ":Artifact",
-        "id": "org.sample:logging-lib",
-        "found": "false",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "5000000000"},
-        "POPULARITY_1_YEAR": 980,
-        "SPEED": 0.90
-    },
-    "n3": {
-        "labels": ":Artifact",
-        "id": "com.app.feature:networking",
-        "found": "true",
-        "severity": "LOW",
-        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "25000000000"},
-        "POPULARITY_1_YEAR": 1100,
-        "SPEED": 0.60
-    },
-    "n4": {
-        "labels": ":Artifact",
-        "id": "org.package:ui-components",
-        "found": "false",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "18000000000"},
-        "POPULARITY_1_YEAR": 1350,
-        "speed": 0.82
-    },
-    "n5": {
-        "labels": ":Artifact",
-        "id": "io.module:analytics-core",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "1", "outdatedTimeInMs": "2000000000"},
-        "POPULARITY_1_YEAR": 1570,
-        "SPEED": 0.95
-    },
-    "n6": {
-        "labels": ":Artifact",
-        "id": "com.system.library:security",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "7000000000"},
-        "POPULARITY_1_YEAR": 1440,
-        "SPEED": 0.88
-    },
-    "n7": {
-        "labels": ":Artifact",
-        "id": "org.framework:database",
-        "found": "false",
-    },
-    "n8": {
-        "labels": ":Artifact",
-        "id": "com.example.module:parser",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "15000000000"},
-        "POPULARITY_1_YEAR": 1120,
-        "SPEED": 0.80
-    },
-    "n9": {
-        "labels": ":Artifact",
-        "id": "org.utility:config",
-        "found": "false",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "8500000000"},
-        "POPULARITY_1_YEAR": 1550,
-        "SPEED": 0.78
-    },
-    "n10": {
-        "labels": ":Artifact",
-        "id": "com.example.new:auth-lib",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "8", "outdatedTimeInMs": "12000000000"},
-        "POPULARITY_1_YEAR": 1000,
-        "speed": 0.70
-    },
-    "n11": {
-        "labels": ":Artifact",
-        "id": "com.newfeature.module:video-processor",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "16000000000"},
-        "POPULARITY_1_YEAR": 1450,
-        "SPEED": 0.86
-    },
-    "n12": {
-        "labels": ":Artifact",
-        "id": "org.temp.module:chat-lib",
-        "found": "false",
-    },
-    "n13": {
-        "labels": ":Artifact",
-        "id": "com.future.module:audio-processor",
-        "found": "false",
-        },
-    "n14": {
-        "labels": ":Artifact",
-        "id": "io.feature.module:language-lib",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "3000000000"},
-        "POPULARITY_1_YEAR": 1230,
-        "SPEED": 0.72
-    },
-    "n15": {
-        "labels": ":Artifact",
-        "id": "org.example.module:math-utils",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "8500000000"},
-        "POPULARITY_1_YEAR": 980,
-        "SPEED": 0.65
-    },
-    "n16": {
-        "labels": ":Artifact",
-        "id": "com.sample.feature:render-engine",
-        "found": "false",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "25000000000"},
-        "POPULARITY_1_YEAR": 1300,
-        "SPEED": 0.80
-    },
-    "n17": {
-        "labels": ":Artifact",
-        "id": "org.framework.module:crypto-lib",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "5000000000"},
-        "POPULARITY_1_YEAR": 1500,
-        "SPEED": 0.91
-    },
-    "n18": {
-        "labels": ":Artifact",
-        "id": "com.ui.module:icons",
-        "found": "false",
-    },
-    "n19": {
-        "labels": ":Artifact",
-        "id": "com.analytics.module:data-core",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "1", "outdatedTimeInMs": "1000000000"},
-        "POPULARITY_1_YEAR": 1050,
-        "SPEED": 0.75
-    },
-    "n20": {
-        "labels": ":Artifact",
-        "id": "org.cloud:service-layer",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "18000000000"},
-        "POPULARITY_1_YEAR": 1470,
-        "SPEED": 0.92
-    },
-    "n21": {
-        "labels": ":Artifact",
-        "id": "com.backend.module:cache",
-        "found": "false",
-        "severity": "LOW",
-        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "6000000000"},
-        "POPULARITY_1_YEAR": 1100,
-        "SPEED": 0.68
-    },
-    "n22": {
-        "labels": ":Artifact",
-        "id": "com.frontend.module:form-handler",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "5", "outdatedTimeInMs": "10000000000"},
-        "POPULARITY_1_YEAR": 1020,
-        "SPEED": 0.70
-    },
-    "n23": {
-        "labels": ":Artifact",
-        "id": "com.engine.module:render",
-        "found": "true",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "6", "outdatedTimeInMs": "20000000000"},
-        "POPULARITY_1_YEAR": 1600,
-        "SPEED": 0.79
-    },
-    "n24": {
-        "labels": ":Artifact",
-        "id": "io.processing.module:image-processor",
-        "found": "false",
-    },
-    "n25": {
-        "labels": ":Artifact",
-        "id": "com.mobile.module:geo-locator",
-        "found": "true",
-        "severity": "LOW",
-        "freshness": {"numberMissedRelease": "4", "outdatedTimeInMs": "7500000000"},
-        "POPULARITY_1_YEAR": 900,
-        "SPEED": 0.55
-    },
-    "n26": {
-        "labels": ":Artifact",
-        "id": "org.sample.module:json-utils",
-        "found": "true",
-        "severity": "HIGH",
-        "freshness": {"numberMissedRelease": "3", "outdatedTimeInMs": "8000000000"},
-        "POPULARITY_1_YEAR": 1200,
-        "SPEED": 0.88
-    },
-    "n27": {
-        "labels": ":Artifact",
-        "id": "com.library.module:xml-parser",
-        "found": "false",
-        "severity": "CRITICAL",
-        "freshness": {"numberMissedRelease": "7", "outdatedTimeInMs": "22000000000"},
-        "POPULARITY_1_YEAR": 1300,
-        "SPEED": 0.78
-    },
-    "n28": {
-        "labels": ":Artifact",
-        "id": "org.io.module:compression",
-        "found": "true",
-        "severity": "MODERATE",
-        "freshness": {"numberMissedRelease": "2", "outdatedTimeInMs": "1000000000"},
-        "POPULARITY_1_YEAR": 1150,
-        "SPEED": 0.84
-    },
-    "n29": {
-        "labels": ":Artifact",
-        "id": "com.temp.module:validation",
-        "found": "true",
-    },
-    "n30": {
-        "labels": ":Artifact",
-        "id": "org.ui.module:animations",
-        "found": "false",
+    "n0": {'labels': ':AddedValue', 
+         'id': 'org.keycloak:keycloak-core:3.4.1.Final:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-267]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2019-10170\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-0225\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1697\\"},{\\"cwe\\":\\"[CWE-547,CWE-798]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2019-14837\\"},{\\"cwe\\":\\"[CWE-306]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-20262\\"},{\\"cwe\\":\\"[CWE-1021]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1728\\"},{\\"cwe\\":\\"[CWE-285,CWE-287]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2018-14637\\"},{\\"cwe\\":\\"[CWE-276]\\",\\"severity\\":\\"LOW\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-285]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-10686\\"},{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-1714\\"},{\\"cwe\\":\\"[CWE-287,CWE-841]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-613]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1724\\"},{\\"cwe\\":\\"[CWE-835]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2018-10912\\"},{\\"cwe\\":\\"[CWE-287]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-27838\\"},{\\"cwe\\":\\"[CWE-287,CWE-841]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-0105\\"},{\\"cwe\\":\\"[CWE-200,CWE-755]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1744\\"},{\\"cwe\\":\\"[CWE-295,CWE-345]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-3875\\"},{\\"cwe\\":\\"[CWE-601]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-200,CWE-532]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1698\\"},{\\"cwe\\":\\"[CWE-863]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-1466\\"},{\\"cwe\\":\\"[CWE-200]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-14820\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-250]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-27826\\"},{\\"cwe\\":\\"[CWE-377]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2021-20202\\"},{\\"cwe\\":\\"[CWE-330,CWE-341]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2020-1731\\"},{\\"cwe\\":\\"[CWE-80]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-0225\\"},{\\"cwe\\":\\"[CWE-645]\\",\\"severity\\":\\"LOW\\",\\"name\\":\\"CVE-2024-1722\\"},{\\"cwe\\":\\"[CWE-200]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-3868\\"},{\\"cwe\\":\\"[CWE-287]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2021-3632\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-35509\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-601,CWE-918]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-10770\\"},{\\"cwe\\":\\"[CWE-20,CWE-352]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2019-10199\\"},{\\"cwe\\":\\"[CWE-347]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-10201\\"},{\\"cwe\\":\\"[CWE-284,CWE-863]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-0091\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-1664\\"},{\\"cwe\\":\\"[CWE-602]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2017-12161\\"},{\\"cwe\\":\\"[CWE-116,CWE-20,CWE-79]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2021-20195\\"},{\\"cwe\\":\\"[CWE-22,CWE-552]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-3856\\"},{\\"cwe\\":\\"[CWE-269,CWE-916]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-14389\\"},{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-3754\\"}]}'
+         },
+    "n1":  {'labels': ':AddedValue', 
+            'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+            },
+    "n2": {'labels': ':AddedValue', 
+           'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
     }
-    }
-
 
 
     # Example edges
     edges = [
         ("n1", "n2", {"label": "relationship_AR"}),
         ("n1", "n3", {"label": "relationship_AR"}),
-        ("n2", "n4", {"label": "relationship_AR"}),
-        ("n5", "n1", {"label": "relationship_AR"}),
-        ("n5", "n6", {"label": "relationship_AR"}),
-        ("n3", "n7", {"label": "relationship_AR"}),
-        ("n8", "n9", {"label": "relationship_AR"}),
-        ("n2", "n10", {"label": "relationship_AR"}),
-        ("n10", "n11", {"label": "relationship_AR"}),
-        ("n11", "n12", {"label": "relationship_AR"}),
-        ("n7", "n13", {"label": "relationship_AR"}),
-        ("n3", "n10", {"label": "relationship_AR"}),
-        ("n12", "n13", {"label": "relationship_AR"}),
-        ("n5", "n8", {"label": "relationship_AR"}),
-        ("n14", "n15", {"label": "relationship_AR"}),
-        ("n15", "n16", {"label": "relationship_AR"}),
-        ("n17", "n5", {"label": "relationship_AR"}),
-        ("n18", "n6", {"label": "relationship_AR"}),
-        ("n19", "n20", {"label": "relationship_AR"}),
-        ("n21", "n22", {"label": "relationship_AR"}),
-        ("n23", "n24", {"label": "relationship_AR"}),
-        ("n25", "n26", {"label": "relationship_AR"}),
-        ("n26", "n27", {"label": "relationship_AR"}),
-        ("n28", "n29", {"label": "relationship_AR"}),
-        ("n9", "n30", {"label": "relationship_AR"}),
-        ("n13", "n21", {"label": "relationship_AR"}),
-        ("n11", "n23", {"label": "relationship_AR"}),
-        ("n24", "n19", {"label": "relationship_AR"}),
-        ("n18", "n10", {"label": "relationship_AR"}),
-        ("n22", "n14", {"label": "relationship_AR"})
-            
     ]
+
 
     att_features = ["freshness", "popularity", "speed", "severity"]
 

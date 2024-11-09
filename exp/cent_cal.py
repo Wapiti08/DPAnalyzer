@@ -93,16 +93,17 @@ if __name__ == "__main__":
     # # ------ calculate the between_centrailty --------
     print("the length of nodes is:", len(list(nodes.keys())))
     print("the length of edges is:", len(edges))
-    betcenter = between_cent.BetCent(nodes, edges)
+    
+    # betcenter = between_cent.BetCent(nodes, edges)
     
     # top_between_cel = betcenter.cal_between_cent()
     # logger.info("The result with min_severity_threshold is:")
     # logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
     # logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
 
-    for prop in [0.1 *i for i in range(1,10)]:
-        top_between_cel = betcenter.cal_between_cent_nx(proportion_without_severity = prop)
-        results[prop] = top_between_cel
+    # for prop in [0.1 *i for i in range(1,10)]:
+    #     top_between_cel = betcenter.cal_between_cent_nx(proportion_without_severity = prop)
+    #     results[prop] = top_between_cel
     # logger.info("The result with min_severity_threshold is:")
     # logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
     # logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
@@ -115,33 +116,33 @@ if __name__ == "__main__":
     #     results[prop] = top_between_cel
     
     # Print results
-    for prop, top_10 in results.items():
-        logger.info(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")  
+    # for prop, top_10 in results.items():
+    #     logger.info(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")  
         
-    for prop, top_between_cel in results.items():
-        logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
+    # for prop, top_between_cel in results.items():
+    #     logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
 
     # ------ calculate the eigenvector centrality ------
 
-    # sever_score_map = {
-    # "CRITICAL": 4,
-    # "HIGH":3, 
-    # "MODERATE":2,
-    # "LOW":1
-    # }
-    # att_features = ["freshness", "popularity", "speed", "severity"]
+    sever_score_map = {
+    "CRITICAL": 4,
+    "HIGH":3, 
+    "MODERATE":2,
+    "LOW":1
+    }
+    att_features = ["freshness", "popularity", "speed", "severity"]
 
-    # eigencenter = eigen_cent.EigenCent(nodes, edges, att_features, sever_score_map)
-    # # process node attribute values to right format
-    # eigencenter._quan_attrs()
-    # eigencenter._covt_df()
+    eigencenter = eigen_cent.EigenCent(nodes, edges, att_features, sever_score_map)
+    # process node attribute values to right format
+    eigencenter._quan_attrs()
+    eigencenter._covt_df()
     
-    # eigencenter._step_wise_reg(0.05, att_features)
-    # # analyse processed attributes
-    # eigencenter._weight_ana()
+    eigencenter._step_wise_reg(0.05, att_features)
+    # analyse processed attributes
+    eigencenter._weight_ana()
 
-    # # get the eigen centrality
-    # top_eigen_nodes = eigencenter.cal_weighted_eigen_cent(nodes)
-    # logger.info(f"the top 10 nodes with highest eigen centrality are: {top_eigen_nodes}")
-    # logger.info(f"the top 10 node ids with highest eigen centrality are: {match_top_nodes_to_ids(top_eigen_nodes, nodes)}")
+    # get the eigen centrality
+    top_eigen_nodes = eigencenter.cal_weighted_eigen_cent_nx(nodes)
+    logger.info(f"the top 10 nodes with highest eigen centrality are: {top_eigen_nodes}")
+    logger.info(f"the top 10 node ids with highest eigen centrality are: {match_top_nodes_to_ids(top_eigen_nodes, nodes)}")
 
