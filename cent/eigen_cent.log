@@ -925,3 +925,13 @@ Notes:
 2024-11-11 11:15:03,202 - __main__ - INFO - The p-value for feature speed is: 0.1947501831448429
 2024-11-11 11:15:03,202 - __main__ - WARNING - No significant features found for addition.
 2024-11-11 11:15:03,202 - __main__ - INFO - Left important features after step-wise regression are: ['severity']
+2024-11-11 17:16:32,475 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 17:16:32,475 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 19:34:38,081 - __main__ - INFO - Left important features after correlation analyis are: ['freshness', 'speed', 'severity']
+2024-11-11 19:34:38,083 - __main__ - INFO - The p-value for feature freshness is: 0.3413461016751054
+2024-11-11 19:34:38,085 - __main__ - INFO - The p-value for feature speed is: 0.09751858513693992
+2024-11-11 19:34:38,086 - __main__ - INFO - The p-value for feature severity is: 0.02297801352394668
+2024-11-11 19:34:38,087 - __main__ - INFO - The p-value for feature freshness is: 0.6468026040184194
+2024-11-11 19:34:38,088 - __main__ - INFO - The p-value for feature speed is: 0.1947501831448429
+2024-11-11 19:34:38,088 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 19:34:38,088 - __main__ - INFO - Left important features after step-wise regression are: ['severity']

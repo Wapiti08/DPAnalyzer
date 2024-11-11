@@ -52,8 +52,9 @@ class EigenCent:
         self.features = features
         self.severity_map = severity_map
         # Create the graph skeleton with nodes that have severity > 0
-        # self.graph = {node: [] for node, attrs in nodes.items() if self._get_sum_severity(attrs) > 0}
-        self.graph = {node: [] for node in nodes.keys()}
+        self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(attrs) or \
+                      self.fresh_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs)}
+        # self.graph = {node: [] for node in nodes.keys()}
 
         # create the graph skeleton 
         # for source, target, _ in edges:
@@ -65,7 +66,7 @@ class EigenCent:
         for source, target, _ in edges:
             # consider both incoming and outcoming edges for eigenvector
             if target in self.graph and source in self.graph:
-                # self.graph[target].append(source)
+                self.graph[target].append(source)
                 self.graph[source].append(target)
     
     def str_to_json(self, escaped_json_str):
@@ -75,6 +76,24 @@ class EigenCent:
         except ValueError as e:
             print(f"Error parsing JSON: {e}")
             return None
+
+    def popu_check(self, node: dict):
+        if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+            return True
+        else:
+            return False
+    
+    def speed_check(self, node: dict):
+        if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+            return True
+        else:
+            return False
+    
+    def fresh_check(self, node: dict):
+        if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+            return True
+        else:
+            return False
 
     def cve_check(self, node:dict):
         if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
