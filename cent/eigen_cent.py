@@ -296,7 +296,7 @@ class EigenCent:
 
 
     def _weight_ana(self, corr_thres=0.1, reg_thres=0.05):
-        ''' combine correlation analysis and step-wise regression
+        ''' combine correlation and step-wise regression
         to analyse different attributes with their contribution
         
         '''
@@ -358,7 +358,7 @@ class EigenCent:
                 G.add_edge(source, target)
 
         # Calculate eigenvector centrality with weight
-        centrality = nx.eigenvector_centrality(G, max_iter=1000, tol=1e-06, weight="weight")
+        centrality = nx.eigenvector_centrality(G, max_iter=100, tol=1e-06, weight="weight")
 
         # Store top 10 nodes by centrality score
         top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
@@ -454,7 +454,7 @@ if __name__ == "__main__":
     eigencenter._quan_attrs()
     eigencenter._covt_df()
     
-    eigencenter._step_wise_reg(0.05, att_features)
+    # eigencenter._step_wise_reg(0.05, att_features)
     # analyse processed attributes
     eigencenter._weight_ana()
 

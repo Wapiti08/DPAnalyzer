@@ -1,0 +1,55 @@
+2024-11-11 14:35:07,143 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:35:07,143 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:35:07,143 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:35:59,097 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:35:59,098 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:35:59,098 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:36:14,660 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:36:14,661 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:36:14,661 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:36:17,536 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:36:17,536 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:36:17,536 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:37:15,317 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:37:15,318 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:37:15,318 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:37:42,947 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:37:42,948 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:37:42,948 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:37:45,651 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:37:45,651 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:37:45,651 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:37:49,616 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:37:49,617 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:37:49,617 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:38:16,571 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:38:16,571 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:38:16,571 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:39:44,961 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:39:44,961 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:39:44,961 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:40:33,100 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:40:33,100 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:40:33,100 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:40:36,460 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:40:36,460 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:40:36,460 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:40:55,808 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:40:55,808 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:40:55,808 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:41:51,407 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:41:51,407 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:41:51,407 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:42:05,081 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:42:05,081 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:42:05,081 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:47:00,256 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:47:00,256 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:47:00,256 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:47:29,770 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:47:29,770 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:47:29,770 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:49:23,957 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-11 14:49:23,957 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-11 14:49:23,957 - __main__ - INFO - The longest chain is: None
+2024-11-11 14:49:23,958 - __main__ - INFO - the causal score computed from matrix is: -58.250868116824115

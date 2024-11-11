@@ -142,7 +142,7 @@ if __name__ == "__main__":
     eigencenter._weight_ana()
 
     # get the eigen centrality
-    top_eigen_nodes = eigencenter.cal_weighted_eigen_cent_nx(nodes)
+    top_eigen_nodes = eigencenter.cal_weighted_eigen_cent_nx()
     logger.info(f"the top 10 nodes with highest eigen centrality are: {top_eigen_nodes}")
     logger.info(f"the top 10 node ids with highest eigen centrality are: {match_top_nodes_to_ids(top_eigen_nodes, nodes)}")
 

@@ -1,0 +1,20 @@
+2024-11-11 11:47:07,920 - cent.eigen_cent - INFO - The p-value for feature freshness is: 7.491910220179492e-77
+2024-11-11 11:47:14,298 - cent.eigen_cent - INFO - The p-value for feature popularity is: 0.7616409806405441
+2024-11-11 11:47:20,513 - cent.eigen_cent - INFO - The p-value for feature speed is: 0.28466092842418783
+2024-11-11 11:47:26,228 - cent.eigen_cent - INFO - The p-value for feature severity is: 0.3768375159132057
+2024-11-11 11:47:34,962 - cent.eigen_cent - INFO - The p-value for feature popularity is: 0.7311769450866059
+2024-11-11 11:47:43,651 - cent.eigen_cent - INFO - The p-value for feature speed is: 0.22556808068670794
+2024-11-11 11:47:52,627 - cent.eigen_cent - INFO - The p-value for feature severity is: 0.31683819497685406
+2024-11-11 11:47:52,628 - cent.eigen_cent - WARNING - No significant features found for addition.
+2024-11-11 11:47:58,668 - cent.eigen_cent - INFO - Left important features after correlation analyis are: []
+2024-11-11 11:47:58,836 - cent.eigen_cent - INFO - Left important features after step-wise regression are: []
+2024-11-11 12:40:00,234 - cent.eigen_cent - INFO - The p-value for feature freshness is: 7.491910220179492e-77
+2024-11-11 12:40:06,646 - cent.eigen_cent - INFO - The p-value for feature popularity is: 0.7616409806405441
+2024-11-11 12:40:12,797 - cent.eigen_cent - INFO - The p-value for feature speed is: 0.28466092842418783
+2024-11-11 12:40:18,506 - cent.eigen_cent - INFO - The p-value for feature severity is: 0.3768375159132057
+2024-11-11 12:40:27,071 - cent.eigen_cent - INFO - The p-value for feature popularity is: 0.7311769450866059
+2024-11-11 12:40:35,350 - cent.eigen_cent - INFO - The p-value for feature speed is: 0.22556808068670794
+2024-11-11 12:40:43,887 - cent.eigen_cent - INFO - The p-value for feature severity is: 0.31683819497685406
+2024-11-11 12:40:43,888 - cent.eigen_cent - WARNING - No significant features found for addition.
+2024-11-11 12:40:49,725 - cent.eigen_cent - INFO - Left important features after correlation analyis are: []
+2024-11-11 12:40:49,889 - cent.eigen_cent - INFO - Left important features after step-wise regression are: []
