@@ -14,6 +14,8 @@ from pgmpy.models import BayesianNetwork
 from scipy.optimize import minimize
 import json
 import logging
+import pickle
+from pathlib import Path
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -77,9 +79,6 @@ class CauDiscover:
                 "cve_num": cve_num
             }
         return pd.DataFrame.from_dict(cve_features, orient="index")
-
-            
-                
 
 
     def prune_cve_edges(self, data_df, sign_level=0.05):
@@ -208,4 +207,71 @@ class CauDiscover:
         return -score
 
 
+def load_data(file_path):
+    with file_path.open('rb') as f:
+        data = pickle.load(f)
+    return data['nodes'], data['edges']
+
+
+
 if __name__ == "__main__":
+    
+    # file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
+    # # read nodes and edges
+    # nodes, edges = load_data(file_path)
+
+    nodes = {
+    "n1":  {'labels': ':AddedValue', 
+            'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+            },
+    "n2": {'labels': ':AddedValue', 
+           'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
+    "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
+    "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
+    "n12":{'labels': ':AddedValue', 'type': 'SPEED', 'value': '0.012981298129812982', 'id': 'org.glassfish.metro:guide:SPEED'},
+    }
+
+
+    # Example edges
+    edges = [
+        ("n1", "n2", {"label": "relationship_AR"}),
+        ("n1", "n12", {"label": "relationship_AR"}),
+        ("n5", "n3", {"label": "relationship_AR"}),
+        ("n1", "n6", {"label": "relationship_AR"}),
+        ("n7", "n3", {"label": "relationship_AR"}),
+        ("n1", "n11", {"label": "relationship_AR"}),
+        ("n8", "n3", {"label": "relationship_AR"}),
+        ("n4", "n7", {"label": "relationship_AR"}),
+        ("n10", "n12", {"label": "relationship_AR"}),
+    ]
+
+    caudiscover = CauDiscover(nodes, edges)
+    # prepare input from nodes and edges
+    
+
+    # discover at scale process
+
+    ## prune cve edges
+
+    ## score cve graph
+
+    ## das discovery
+
+    ## compute causal chain
+
+    # ----------- feature analysis ------------ 
+
+    # compute cve metrics
+
+    # compute adjcency matrix
+
+    # compute causal score

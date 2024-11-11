@@ -849,3 +849,79 @@ Notes:
 2024-11-07 13:21:24,243 - __main__ - INFO - the pvalues for feature severity is: 0.7707124448343632
 2024-11-07 13:21:24,244 - __main__ - INFO - Left important features after correlation analyis are: []
 2024-11-07 13:21:24,244 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 10:40:59,183 - __main__ - WARNING - Failed to fit model for feature freshness: exog contains inf or nans
+2024-11-11 10:40:59,185 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:40:59,186 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:40:59,187 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:40:59,187 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 10:40:59,188 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 10:40:59,188 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 10:43:01,481 - __main__ - WARNING - Failed to fit model for feature freshness: exog contains inf or nans
+2024-11-11 10:43:01,482 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:43:01,482 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:43:01,483 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:43:01,483 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 10:43:01,484 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 10:43:01,484 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 10:43:40,932 - __main__ - WARNING - Failed to fit model for feature freshness: exog contains inf or nans
+2024-11-11 10:43:40,934 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:43:40,937 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:43:40,938 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:43:40,938 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 10:43:40,939 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 10:43:40,939 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 10:55:07,001 - __main__ - WARNING - Failed to fit model for feature freshness: exog contains inf or nans
+2024-11-11 10:55:07,005 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:55:07,007 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:55:07,008 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 10:55:07,008 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 10:55:07,009 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 10:55:07,009 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 11:04:17,911 - __main__ - WARNING - Failed to fit model for feature freshness: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:04:17,913 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:04:17,916 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:04:17,917 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:04:17,917 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 11:04:17,918 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 11:04:17,918 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 11:08:21,664 - __main__ - WARNING - Failed to fit model for feature freshness: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:21,666 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:21,668 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:21,669 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:21,669 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 11:08:21,670 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 11:08:21,670 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 11:08:59,078 - __main__ - WARNING - Failed to fit model for feature freshness: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:59,081 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:59,083 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:59,084 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:08:59,084 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 11:08:59,085 - __main__ - INFO - Left important features after correlation analyis are: []
+2024-11-11 11:08:59,085 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 11:10:44,127 - __main__ - WARNING - Failed to fit model for feature freshness: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:10:44,129 - __main__ - WARNING - Failed to fit model for feature popularity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:10:44,132 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:10:44,134 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:10:44,134 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 11:10:44,135 - __main__ - INFO - Left important features after correlation analyis are: ['freshness', 'speed', 'severity']
+2024-11-11 11:10:44,138 - __main__ - WARNING - Failed to fit model for feature freshness: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:10:44,140 - __main__ - WARNING - Failed to fit model for feature speed: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:10:44,142 - __main__ - WARNING - Failed to fit model for feature severity: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+2024-11-11 11:10:44,142 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 11:10:44,142 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-11 11:15:03,170 - __main__ - INFO - The p-value for feature freshness is: 0.3413461016751054
+2024-11-11 11:15:03,173 - __main__ - INFO - The p-value for feature popularity is: 0.8244356730279203
+2024-11-11 11:15:03,176 - __main__ - INFO - The p-value for feature speed is: 0.09751858513693992
+2024-11-11 11:15:03,179 - __main__ - INFO - The p-value for feature severity is: 0.02297801352394668
+2024-11-11 11:15:03,181 - __main__ - INFO - The p-value for feature freshness is: 0.6468026040184194
+2024-11-11 11:15:03,184 - __main__ - INFO - The p-value for feature popularity is: 0.620734113259777
+2024-11-11 11:15:03,187 - __main__ - INFO - The p-value for feature speed is: 0.1947501831448429
+2024-11-11 11:15:03,187 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 11:15:03,188 - __main__ - INFO - Left important features after correlation analyis are: ['freshness', 'speed', 'severity']
+2024-11-11 11:15:03,191 - __main__ - INFO - The p-value for feature freshness is: 0.3413461016751054
+2024-11-11 11:15:03,194 - __main__ - INFO - The p-value for feature speed is: 0.09751858513693992
+2024-11-11 11:15:03,196 - __main__ - INFO - The p-value for feature severity is: 0.02297801352394668
+2024-11-11 11:15:03,199 - __main__ - INFO - The p-value for feature freshness is: 0.6468026040184194
+2024-11-11 11:15:03,202 - __main__ - INFO - The p-value for feature speed is: 0.1947501831448429
+2024-11-11 11:15:03,202 - __main__ - WARNING - No significant features found for addition.
+2024-11-11 11:15:03,202 - __main__ - INFO - Left important features after step-wise regression are: ['severity']

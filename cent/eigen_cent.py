@@ -52,8 +52,8 @@ class EigenCent:
         self.features = features
         self.severity_map = severity_map
         # Create the graph skeleton with nodes that have severity > 0
-        self.graph = {node: [] for node, attrs in nodes.items() if self._get_sum_severity(attrs) > 0}
-        # self.graph = {node: [] for node in nodes.keys()}
+        # self.graph = {node: [] for node, attrs in nodes.items() if self._get_sum_severity(attrs) > 0}
+        self.graph = {node: [] for node in nodes.keys()}
 
         # create the graph skeleton 
         # for source, target, _ in edges:
@@ -64,8 +64,9 @@ class EigenCent:
 
         for source, target, _ in edges:
             # consider both incoming and outcoming edges for eigenvector
-            # self.graph[target].append(source)
-            self.graph[source].append(target)
+            if target in self.graph and source in self.graph:
+                # self.graph[target].append(source)
+                self.graph[source].append(target)
     
     def str_to_json(self, escaped_json_str):
         try:
@@ -118,7 +119,7 @@ class EigenCent:
             # add to processed data --- in order to implemented dataframe-orient manipulation
             processed_data.append(
                 {
-                    "id": node['id'],
+                    # "id": node['id'],
                     'numberMissedRelease': numberMissedRelease,
                     "outdatedTimeInMs": outdatedTimeInMs
                 }
@@ -126,19 +127,34 @@ class EigenCent:
         # create a dataframe
         df = pd.DataFrame(processed_data)
 
-        # normalize the attributes with min-max normalization
-        df["Normalized_Missed"] = (df['numberMissedRelease'] - df["numberMissedRelease"].min()) / \
-                                    (df['numberMissedRelease'].max() - df["numberMissedRelease"].min())
-        df['Normalized_Outdated'] = (df['outdatedTimeInMs'] - df['outdatedTimeInMs'].min()) / \
-                                    (df['outdatedTimeInMs'].max() - df['outdatedTimeInMs'].min())
+        # Mark rows where both values are zero for setting freshness_score to 0 later
+        df['is_zero_freshness'] = (df['numberMissedRelease'] == 0) & (df['outdatedTimeInMs'] == 0)
 
+        # Apply min-max normalization only for non-zero rows
+        df["Normalized_Missed"] = df.loc[~df['is_zero_freshness'], 'numberMissedRelease']
+        df["Normalized_Outdated"] = df.loc[~df['is_zero_freshness'], 'outdatedTimeInMs']
 
-        # define weights for freshness calculation
+        # Min-max normalization for non-zero freshness entries
+        df.loc[~df['is_zero_freshness'], "Normalized_Missed"] = (
+            (df['numberMissedRelease'] - df['numberMissedRelease'].min()) / 
+            (df['numberMissedRelease'].max() - df['numberMissedRelease'].min())
+        )
+
+        df.loc[~df['is_zero_freshness'], "Normalized_Outdated"] = (
+            (df['outdatedTimeInMs'] - df['outdatedTimeInMs'].min()) / 
+            (df['outdatedTimeInMs'].max() - df['outdatedTimeInMs'].min())
+        )
+
+        # Define weights for freshness calculation
         w1, w2 = 0.5, 0.5
 
-        # calculate freshness score
-        df['freshness_score'] = w1 * df['Normalized_Missed'] + w2 * df['Normalized_Outdated']
-        # map the freshness scores back to the original nodes
+        # Calculate freshness score for non-zero freshness entries
+        df['freshness_score'] = 0  # Initialize all scores to 0
+        df.loc[~df['is_zero_freshness'], 'freshness_score'] = (
+            w1 * df['Normalized_Missed'] + w2 * df['Normalized_Outdated']
+        )
+
+        # Map the freshness scores back to the original nodes
         for i, node in enumerate(self.nodes.values()):
             node["freshness_score"] = df.loc[i, 'freshness_score']
 
@@ -158,7 +174,7 @@ class EigenCent:
         '''
         for id, node in self.nodes.items():
             if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
-                 node["SPEED"] = int(node["value"])
+                 node["SPEED"] = float(node["value"])
             else:
                 node["SPEED"] = 0
     
@@ -202,8 +218,8 @@ class EigenCent:
                 data["speed"].append(node["SPEED"])
                 severity_value = self._get_sum_severity(node)
                 data["severity"].append(severity_value)
-                data["indegree"].append(G.in_degree(nid))
-                data["degree"].append(G.degree(nid))
+                data["indegree"].append(G.in_degree(nid) if G.has_node(nid) else 0)
+                data["degree"].append(G.degree(nid) if G.has_node(nid) else 0)
 
         self.node_attr_df = pd.DataFrame(data)
    
@@ -228,40 +244,52 @@ class EigenCent:
         '''
         init_features = self.node_attr_df[sele_features].columns.tolist()
         # y = self.node_attr_df["indegree"]
-        y = self.node_attr_df["degree"]
+        y = self.node_attr_df["degree"].values
+        
         best_features = []
-
+        
         while init_features:
             best_feature = None
             for feature in init_features:
                 features = best_features + [feature]
+
                 X_train = self.node_attr_df[features]
                 # add constant term for intercept
                 X_train = sm.add_constant(X_train)
                 # Drop rows where X_train or y contains NaN or inf values
-                # valid_idx = X_train.apply(lambda x: np.isfinite(x)).all(axis=1) & np.isfinite(y)
-                # X_train = X_train[valid_idx]
-                # y_valid = y[valid_idx]
+                valid_idx = X_train.apply(lambda x: np.isfinite(x)).all(axis=1) & np.isfinite(y)
+                X_train = X_train[valid_idx]
+                y_valid = y[valid_idx]
 
-                # # Check if X_train and y are not empty after dropping invalid rows
-                # if X_train.empty or y_valid.empty:
-                #     continue
+                # Check if X_train and y are not empty after dropping invalid rows
+                if X_train.size == 0 or y_valid.size == 0:
+                    continue
 
-                X_train = np.asarray(X_train)
-                y = np.asarray(y)
+                X_train = X_train.values
 
-                model = sm.OLS(y, X_train).fit()
-                p_value = model.pvalues[feature]
-                logger.info(f"the pvalues for feature {feature} is: {p_value}")
-                # p_value is significant
-                if p_value < reg_thres:
-                    if best_feature is None or model.rsquared > best_feature[1]:
-                        best_feature = (feature, model.rsquared)
-            
+                try:
+                    model = sm.OLS(y, X_train).fit()
+
+                    # Check if the model includes more than just the constant
+                    if len(model.pvalues) > 1:
+                        # Get the p-value of the last added feature
+                        p_value = model.pvalues[-1]
+                        logger.info(f"The p-value for feature {feature} is: {p_value}")
+                        
+                        # Check if feature is significant
+                        if p_value < reg_thres:
+                            if best_feature is None or model.rsquared > best_feature[1]:
+                                best_feature = (feature, model.rsquared)
+
+                except Exception as e:
+                    logger.warning(f"Failed to fit model for feature {feature}: {e}")
+
+
             if best_feature:
                 best_features.append(best_feature[0])
                 init_features.remove(best_feature[0])
             else:
+                logger.warning("No significant features found for addition.")
                 break  
         
         return best_features
@@ -377,9 +405,6 @@ if __name__ == "__main__":
     # Example nodes with detailed attributes
     # Example nodes with detailed attributes
     nodes = {
-    "n0": {'labels': ':AddedValue', 
-         'id': 'org.keycloak:keycloak-core:3.4.1.Final:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-267]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2019-10170\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-0225\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1697\\"},{\\"cwe\\":\\"[CWE-547,CWE-798]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2019-14837\\"},{\\"cwe\\":\\"[CWE-306]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-20262\\"},{\\"cwe\\":\\"[CWE-1021]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1728\\"},{\\"cwe\\":\\"[CWE-285,CWE-287]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2018-14637\\"},{\\"cwe\\":\\"[CWE-276]\\",\\"severity\\":\\"LOW\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-285]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-10686\\"},{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-1714\\"},{\\"cwe\\":\\"[CWE-287,CWE-841]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-613]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1724\\"},{\\"cwe\\":\\"[CWE-835]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2018-10912\\"},{\\"cwe\\":\\"[CWE-287]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-27838\\"},{\\"cwe\\":\\"[CWE-287,CWE-841]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-0105\\"},{\\"cwe\\":\\"[CWE-200,CWE-755]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1744\\"},{\\"cwe\\":\\"[CWE-295,CWE-345]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-3875\\"},{\\"cwe\\":\\"[CWE-601]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-200,CWE-532]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-1698\\"},{\\"cwe\\":\\"[CWE-863]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-1466\\"},{\\"cwe\\":\\"[CWE-200]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-14820\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-250]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-27826\\"},{\\"cwe\\":\\"[CWE-377]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2021-20202\\"},{\\"cwe\\":\\"[CWE-330,CWE-341]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2020-1731\\"},{\\"cwe\\":\\"[CWE-80]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2022-0225\\"},{\\"cwe\\":\\"[CWE-645]\\",\\"severity\\":\\"LOW\\",\\"name\\":\\"CVE-2024-1722\\"},{\\"cwe\\":\\"[CWE-200]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-3868\\"},{\\"cwe\\":\\"[CWE-287]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2021-3632\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-35509\\"},{\\"cwe\\":\\"[CWE-79]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"UNKNOWN\\"},{\\"cwe\\":\\"[CWE-601,CWE-918]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2020-10770\\"},{\\"cwe\\":\\"[CWE-20,CWE-352]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2019-10199\\"},{\\"cwe\\":\\"[CWE-347]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2019-10201\\"},{\\"cwe\\":\\"[CWE-284,CWE-863]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-0091\\"},{\\"cwe\\":\\"[CWE-295]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-1664\\"},{\\"cwe\\":\\"[CWE-602]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2017-12161\\"},{\\"cwe\\":\\"[CWE-116,CWE-20,CWE-79]\\",\\"severity\\":\\"CRITICAL\\",\\"name\\":\\"CVE-2021-20195\\"},{\\"cwe\\":\\"[CWE-22,CWE-552]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-3856\\"},{\\"cwe\\":\\"[CWE-269,CWE-916]\\",\\"severity\\":\\"HIGH\\",\\"name\\":\\"CVE-2020-14389\\"},{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2021-3754\\"}]}'
-         },
     "n1":  {'labels': ':AddedValue', 
             'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
             },
@@ -388,13 +413,37 @@ if __name__ == "__main__":
            },
     "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
            },
+    "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
+    "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
+    "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
+    "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
+    "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
+    "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
+    "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
+    "n16":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
     }
 
 
     # Example edges
     edges = [
         ("n1", "n2", {"label": "relationship_AR"}),
-        ("n1", "n3", {"label": "relationship_AR"}),
+        ("n1", "n12", {"label": "relationship_AR"}),
+        ("n5", "n3", {"label": "relationship_AR"}),
+        ("n1", "n6", {"label": "relationship_AR"}),
+        ("n7", "n3", {"label": "relationship_AR"}),
+        ("n1", "n11", {"label": "relationship_AR"}),
+        ("n8", "n3", {"label": "relationship_AR"}),
+        ("n4", "n7", {"label": "relationship_AR"}),
+        ("n10", "n12", {"label": "relationship_AR"}),
+        ("n5", "n13", {"label": "relationship_AR"}),
+        ("n4", "n14", {"label": "relationship_AR"}),
+        ("n13", "n16", {"label": "relationship_AR"}),
+        ("n10", "n15", {"label": "relationship_AR"}),
     ]
 
 
