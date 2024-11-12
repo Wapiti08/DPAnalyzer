@@ -7,17 +7,17 @@
 
 import networkx as nx
 import numpy as np
-import pandas as pd
+import dask.dataframe as dd
 from pgmpy.estimators import PC
 from sklearn.preprocessing import StandardScaler
 from pgmpy.models import BayesianNetwork
 from pgmpy.estimators import BicScore
-from scipy.optimize import minimize
 import json
 import logging
 import pickle
 from pathlib import Path
 import re
+import pandas as pd
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s]: %(message)s',
@@ -51,7 +51,6 @@ class CauDiscover:
         except ValueError as e:
             print(f"Error parsing JSON: {e}")
             return None
-
 
     def cve_check(self, node:dict):
         if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
@@ -93,7 +92,7 @@ class CauDiscover:
             cve_score_list.append(cve_score)
             cve_num_list.append(cve_num)
         
-        # Create a DataFrame where columns are features, and rows are node_ids
+        # Create a Dask DataFrame where columns are features, and rows are node_ids
         cve_features = {
             "node": node_ids,
             "cve_exists": cve_exists_list,
@@ -101,23 +100,20 @@ class CauDiscover:
             "cve_num": cve_num_list
         }
         
-        df = pd.DataFrame(cve_features)
+        df = dd.from_pandas(pd.DataFrame(cve_features), npartitions=4)  # Use Dask DataFrame with 4 partitions
         return df
-
 
     def prune_cve_edges(self, data_df, sign_level=0.05):
         ''' prune edges among CVE nodes using conditional independence tests
-        
         '''
-        
         # consider nodes with CVEs
         cve_nodes = self.get_cve_nodes()
         cve_df = data_df[data_df['node'].isin(cve_nodes)].set_index('node')
         cve_data = cve_df[["cve_exists", "cve_score", "cve_num"]]
+        
         # apply the PC algorithm    
-        pc = PC(cve_data)
-        # initial undirected graph structure
-        skeleton = pc.estimate(return_type="skeleton")
+        pc = PC(cve_data.compute())  # Use .compute() to get the actual data in memory for PC
+        skeleton = pc.estimate(significance_level=sign_level,return_type="skeleton")
 
         # add edges that passed independence tests to a new graph
         pruned_G = nx.DiGraph()
@@ -125,8 +121,6 @@ class CauDiscover:
 
         # get the first 
         for u, v in skeleton[0].edges():
-            if pc.is_independent(u, v, significance_level=sign_level): 
-                continue
             pruned_G.add_edge(u, v)
         
         return pruned_G
@@ -134,9 +128,7 @@ class CauDiscover:
     def score_cve_graph(self, pruned_G, cve_data):
         ''' apply score-based learning using Bayesian Information Criterion (BIC) 
         to refine the causal structure among CVE nodes 
-        
         '''
-        print(pruned_G)
         model = BayesianNetwork(pruned_G.edges)
         model.fit(cve_data)
         bic = BicScore(cve_data)
@@ -156,8 +148,7 @@ class CauDiscover:
         return pruned_G
 
     def causal_chain_length(self, caugraph):
-        ''' compute the longest and shorest vul propagation lengths within causal graph 
-        
+        ''' compute the longest and shortest vul propagation lengths within causal graph 
         '''
         # compute all the shortest paths between nodes
         shortest_paths = dict(nx.all_pairs_shortest_path_length(caugraph))
@@ -181,67 +172,41 @@ class CauDiscover:
         
         return sum_cve_score, cve_nums
         '''
-        # get the list
         if self.cve_check(node):
             cve_list = self.str_to_json(node["value"])['cve']
         else:
             return 0, 0
-        # get the string value in every list
         cve_seve_str_list = [cve["severity"] for cve in cve_list]
-        # sum all the converted value
         cve_score_list = [self.severity_map.get(cve_str,0) for cve_str in cve_seve_str_list]
         sum_seve_score = sum(cve_score_list)
         return sum_seve_score, len(cve_score_list)
 
-
-    # filter the nodes with CVEs
-    def build_cve_metrics(self, ):
+    def build_cve_metrics(self):
         ''' build matrix including nodes with cve info
-        
         '''
         features = []
 
         for node_id, node in self.nodes.items():
-            # calculate the cve information
             sum_cve_score, cve_list_len = self._get_sum_severity(node)
             cve_info = [
-            # whether exist
-                int(self.cve_check(node)),
-            # sum of cve score
-                sum_cve_score,
-            # number of cve
-                cve_list_len
+                int(self.cve_check(node)),  # whether exist
+                sum_cve_score,  # sum of cve score
+                cve_list_len  # number of cve
             ]
 
             features.append(cve_info)
-        
+
         scaler = StandardScaler()
         return scaler.fit_transform(np.array(features))
 
-
-    # def adj_matrix_build(self,):
-        
-    #     num_nodes = len(self.nodes)
-    #     adj_matrix = np.zeros((num_nodes, num_nodes), dtype=int)
-    #     for u, v, attr in self.edges:
-    #         u_index = int(re.search(r'\d+', u).group())
-    #         v_index = int(re.search(r'\d+', v).group())
-    #         adj_matrix[u_index, v_index] = 1
-        
-    #     return adj_matrix
-    
     def causal_score(self, params, feature_matrix):
         '''
         :param params: the set of weights for each feature
-        
         '''
         score = 0.0
         for u, v, attr in self.edges:
-            # Extract node indices from node names
             u_index = int(re.search(r'\d+', u).group())
             v_index = int(re.search(r'\d+', v).group())
-            
-            # Calculate the feature difference and apply weights
             feature_diff = np.abs(feature_matrix[u_index] - feature_matrix[v_index])
             score += np.dot(params, feature_diff)
         
@@ -255,56 +220,54 @@ def load_data(file_path):
         data = pickle.load(f)
     return data['nodes'], data['edges']
 
-
-
 if __name__ == "__main__":
     
-    # file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
-    # # read nodes and edges
-    # nodes, edges = load_data(file_path)
+    file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
+    # read nodes and edges
+    nodes, edges = load_data(file_path)
 
     # Example nodes with detailed attributes
-    nodes = {
-    "n1":  {'labels': ':AddedValue', 
-            'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-            },
-    "n2": {'labels': ':AddedValue', 
-           'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-           },
-    "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-           },
-    "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
-    "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
-    "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
-    "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
-    "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
-    "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
-    "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
-    "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
-    }
+    # nodes = {
+    # "n1":  {'labels': ':AddedValue', 
+    #         'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+    #         },
+    # "n2": {'labels': ':AddedValue', 
+    #        'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+    #        },
+    # "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+    #        },
+    # "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    # "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    # "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    # "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    # "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    # "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
+    # "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
+    # "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
+    # "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
+    # "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
+    # "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
+    # "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
+    # "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
+    # }
 
 
-    # Example edges
-    edges = [
-        ("n1", "n2", {"label": "relationship_AR"}),
-        ("n1", "n12", {"label": "relationship_AR"}),
-        ("n5", "n3", {"label": "relationship_AR"}),
-        ("n1", "n6", {"label": "relationship_AR"}),
-        ("n7", "n3", {"label": "relationship_AR"}),
-        ("n1", "n11", {"label": "relationship_AR"}),
-        ("n8", "n3", {"label": "relationship_AR"}),
-        ("n4", "n7", {"label": "relationship_AR"}),
-        ("n10", "n12", {"label": "relationship_AR"}),
-        ("n5", "n13", {"label": "relationship_AR"}),
-        ("n4", "n14", {"label": "relationship_AR"}),
-        ("n13", "n0", {"label": "relationship_AR"}),
-        ("n10", "n15", {"label": "relationship_AR"}),
-    ]
+    # # Example edges
+    # edges = [
+    #     ("n1", "n2", {"label": "relationship_AR"}),
+    #     ("n1", "n12", {"label": "relationship_AR"}),
+    #     ("n5", "n3", {"label": "relationship_AR"}),
+    #     ("n1", "n6", {"label": "relationship_AR"}),
+    #     ("n7", "n3", {"label": "relationship_AR"}),
+    #     ("n1", "n11", {"label": "relationship_AR"}),
+    #     ("n8", "n3", {"label": "relationship_AR"}),
+    #     ("n4", "n7", {"label": "relationship_AR"}),
+    #     ("n10", "n12", {"label": "relationship_AR"}),
+    #     ("n5", "n13", {"label": "relationship_AR"}),
+    #     ("n4", "n14", {"label": "relationship_AR"}),
+    #     ("n13", "n0", {"label": "relationship_AR"}),
+    #     ("n10", "n15", {"label": "relationship_AR"}),
+    # ]
     
 
     caudiscover = CauDiscover(nodes, edges, sever_score_map)

@@ -377,7 +377,7 @@ class EigenCent:
                 G.add_edge(source, target)
 
         # Calculate eigenvector centrality with weight
-        centrality = nx.eigenvector_centrality(G, max_iter=100, tol=1e-06, weight="weight")
+        centrality = nx.eigenvector_centrality(G, max_iter=1000, tol=1e-06, weight="weight")
 
         # Store top 10 nodes by centrality score
         top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
