@@ -51,9 +51,11 @@ class EigenCent:
         self.edges = edges
         self.features = features
         self.severity_map = severity_map
-        # Create the graph skeleton with nodes that have severity > 0
+        # consider nodes with all attributes
         self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(attrs) or \
                       self.fresh_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs)}
+        # self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(attrs) or \
+        #             self.popu_check(attrs) or self.speed_check(attrs)}
         # self.graph = {node: [] for node in nodes.keys()}
 
         # create the graph skeleton 
@@ -66,7 +68,7 @@ class EigenCent:
         for source, target, _ in edges:
             # consider both incoming and outcoming edges for eigenvector
             if target in self.graph and source in self.graph:
-                self.graph[target].append(source)
+                # self.graph[target].append(source)
                 self.graph[source].append(target)
     
     def str_to_json(self, escaped_json_str):
@@ -365,16 +367,34 @@ class EigenCent:
         return self.node_attr_df[["weight"]]
 
     def cal_weighted_eigen_cent_nx(self, ):
-        G = nx.DiGraph()
-        # Add nodes with custom weights as attributes
-        for nid, node in self.nodes.items():
-            weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
-            G.add_node(nid, weight=weights)
+        
+        # ensure self.graph is a directed graph
+        if not isinstance(self.graph, nx.DiGraph):
+            G = nx.DiGraph()
 
-        # Add edges for incoming relationships (directed)
-        for source, target, _ in self.edges:
-            if target in self.nodes and source in self.nodes:
-                G.add_edge(source, target)
+            for node in self.graph:
+                G.add_node(node)
+
+            for source, targets in self.graph.items():
+                for target in targets:
+                    G.add_edge(source, target)
+                
+        # set weights as attributes for nodes in self.graph
+        weights = self.node_attr_df.set_index("id")["weight"].to_dict()
+        for nid in G.nodes:
+            # G.nodes[nid]['weight'] = weights.get(nid, 1)
+            G.nodes[nid]['weight'] = weights.get(nid, 0)
+
+        # G = nx.DiGraph()
+        # # Add nodes with custom weights as attributes
+        # for nid, node in self.nodes.items():
+        #     weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
+        #     G.add_node(nid, weight=weights)
+
+        # # Add edges for incoming relationships (directed)
+        # for source, target, _ in self.edges:
+        #     if target in self.nodes and source in self.nodes:
+        #         G.add_edge(source, target)
 
         # Calculate eigenvector centrality with weight
         centrality = nx.eigenvector_centrality(G, max_iter=1000, tol=1e-06, weight="weight")
@@ -444,7 +464,18 @@ if __name__ == "__main__":
     "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
     "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
     "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
-    "n16":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
+    "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
+    'n16': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.111', 'version': '5.20.111', 'timestamp': '1626148242000'},
+    'n17': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M4', 'version': '1.0.0-M4', 'timestamp': '1583239943000'},
+    'n18': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M3', 'version': '1.0.0-M3', 'timestamp': '1579861029000'},
+    'n19': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.113', 'version': '5.20.113', 'timestamp': '1626179580000'},
+    'n20': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.112', 'version': '5.20.112', 'timestamp': '1626170945000'},
+    'n21': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.115', 'version': '5.20.115', 'timestamp': '1626340086000'},
+    'n22': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M2', 'version': '1.0.0-M2', 'timestamp': '1576600059000'},
+    'n23': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M6', 'version': '1.0.0-M6', 'timestamp': '1586476381000'},
+    'n24': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.114', 'version': '5.20.114', 'timestamp': '1626266264000'},
+    'n25': {'labels': ':Release', 'version': '0.5.0', 'timestamp': '1669329622000', 'id': 'com.splendo.kaluga:alerts-androidlib:0.5.0'},
+
     }
 
 
@@ -461,9 +492,16 @@ if __name__ == "__main__":
         ("n10", "n12", {"label": "relationship_AR"}),
         ("n5", "n13", {"label": "relationship_AR"}),
         ("n4", "n14", {"label": "relationship_AR"}),
-        ("n13", "n16", {"label": "relationship_AR"}),
+        ("n13", "n0", {"label": "relationship_AR"}),
         ("n10", "n15", {"label": "relationship_AR"}),
+        ("n1", "n16", {"label": "relationship_AR"}),
+        ("n19", "n25", {"label": "relationship_AR"}),
+        ("n5", "n21", {"label": "relationship_AR"}),
+        ("n21", "n23", {"label": "relationship_AR"}),
+        ("n19", "n24", {"label": "relationship_AR"}),
+        ("n4", "n19", {"label": "relationship_AR"}),
     ]
+    
 
 
     att_features = ["freshness", "popularity", "speed", "severity"]

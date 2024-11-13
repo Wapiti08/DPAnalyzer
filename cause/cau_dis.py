@@ -3,6 +3,7 @@
  # @ Modified time: 2024-10-31 14:18:30
  # @ Description: causal discovery against the cve /cwe of nodes in dependency graph
 
+
  '''
 
 import networkx as nx
@@ -44,6 +45,12 @@ class CauDiscover:
         self.edges = edges
         self.severity_map = sever_score_map
     
+    def get_timestamp(self, node:dict):
+        if "timestamp" in node:
+            return int(node["timestamp"])
+        else:
+            return 0
+
     def str_to_json(self, escaped_json_str):
         try:
             clean_str = escaped_json_str.replace('\\"', '"')
@@ -64,43 +71,74 @@ class CauDiscover:
 
     def _data_create(self,):
         ''' create dataframe based on attribute info
-        node, cve_exist, cve_score, cve_num
-        
+
+            source, target, source_cve_exists, source_cve_score, source_cve_num, 
+            target_cve_exists, target_cve_score, target_cve_num, timestamp of targets,
+
         return dataframe
         '''
         # Initialize empty lists for each column
-        cve_exists_list = []
-        cve_score_list = []
-        cve_num_list = []
-        node_ids = []  # Store the node ids for indexing
-        
-        for node_id, node in self.nodes.items():
-            cve_exists, cve_score, cve_num = 0, 0, 0  # Default values
-            
-            if self.cve_check(node):
-                cve_exists = 1
-                cve_list = self.str_to_json(node["value"])['cve']
+        source_cve_exists_list, target_cve_exists_list = [], []
+        source_cve_score_list, target_cve_score_list = [], []
+        source_cve_num_list, target_cve_num_list = [], []
+        source_node_ids, target_node_ids = [], []  # Store the node ids for indexing
+        time_list = []
+
+        for source, target, _ in self.edges:
+            # get the node attributes from nodes dict
+            source_attrs = self.nodes[source]
+            target_attrs = self.nodes[target]
+
+            source_cve_exists, source_cve_score, source_cve_num = 0, 0, 0  # Default values
+            target_cve_exists, target_cve_score, target_cve_num = 0, 0, 0
+
+            if self.cve_check(source_attrs):
+                source_cve_exists = 1
+                source_cve_list = self.str_to_json(source_attrs["value"])['cve']
                 # Get the severity string for each CVE
-                cve_seve_str_list = [cve["severity"] for cve in cve_list]
+                source_cve_seve_str_list = [cve["severity"] for cve in source_cve_list]
                 # Convert each severity string to a score and sum them up
-                cve_score = sum([self.severity_map.get(cve_str, 0) for cve_str in cve_seve_str_list])
-                cve_num = len(cve_seve_str_list)
+                source_cve_score = sum([self.severity_map.get(cve_str, 0) for cve_str in source_cve_seve_str_list])
+                source_cve_num = len(source_cve_seve_str_list)
 
             # Append the data for this node
-            node_ids.append(node_id)
-            cve_exists_list.append(cve_exists)
-            cve_score_list.append(cve_score)
-            cve_num_list.append(cve_num)
-        
+            source_node_ids.append(source)
+            source_cve_exists_list.append(source_cve_exists)
+            source_cve_score_list.append(source_cve_score)
+            source_cve_num_list.append(source_cve_num)
+
+            if self.cve_check(target_attrs):
+                target_cve_exists = 1
+                target_cve_list = self.str_to_json(target_attrs["value"])['cve']
+                # Get the severity string for each CVE
+                target_cve_seve_str_list = [cve["severity"] for cve in target_cve_list]
+                # Convert each severity string to a score and sum them up
+                target_cve_score = sum([self.severity_map.get(cve_str, 0) for cve_str in target_cve_seve_str_list])
+                target_cve_num = len(target_cve_seve_str_list)
+
+            # Append the data for this node
+            target_node_ids.append(target)
+            target_cve_exists_list.append(target_cve_exists)
+            target_cve_score_list.append(target_cve_score)
+            target_cve_num_list.append(target_cve_num)
+
+            # add timestamp if the value exists
+            time_list.append(self.get_timestamp(target_attrs))
+
         # Create a Dask DataFrame where columns are features, and rows are node_ids
         cve_features = {
-            "node": node_ids,
-            "cve_exists": cve_exists_list,
-            "cve_score": cve_score_list,
-            "cve_num": cve_num_list
+            "source": source_node_ids,
+            "target": target_node_ids,
+            "source_cve_exists": source_cve_exists_list,
+            "source_cve_score": source_cve_score_list,
+            "source_cve_num": source_cve_num_list,
+            "target_cve_exists": target_cve_exists_list,
+            "target_cve_score": target_cve_score_list,
+            "target_cve_num": target_cve_num_list,
+            "timestamp": time_list,
         }
-        
         df = dd.from_pandas(pd.DataFrame(cve_features), npartitions=4)  # Use Dask DataFrame with 4 partitions
+        
         return df
 
     def prune_cve_edges(self, data_df, sign_level=0.05):
@@ -108,9 +146,9 @@ class CauDiscover:
         '''
         # consider nodes with CVEs
         cve_nodes = self.get_cve_nodes()
-        cve_df = data_df[data_df['node'].isin(cve_nodes)].set_index('node')
-        cve_data = cve_df[["cve_exists", "cve_score", "cve_num"]]
-        
+        cve_df = data_df[(data_df['source'].isin(cve_nodes)) | (data_df['target'].isin(cve_nodes))]
+        cve_data = cve_df.drop(columns = ["source", "target"])
+
         # apply the PC algorithm    
         pc = PC(cve_data.compute())  # Use .compute() to get the actual data in memory for PC
         skeleton = pc.estimate(significance_level=sign_level,return_type="skeleton")
@@ -130,6 +168,8 @@ class CauDiscover:
         to refine the causal structure among CVE nodes 
         '''
         model = BayesianNetwork(pruned_G.edges)
+        if isinstance(cve_data, dd.DataFrame):
+            cve_data = cve_data.compute()
         model.fit(cve_data)
         bic = BicScore(cve_data)
         bic_score = bic.score(model)
@@ -223,6 +263,7 @@ def load_data(file_path):
 if __name__ == "__main__":
     
     file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
+
     # read nodes and edges
     nodes, edges = load_data(file_path)
 
@@ -249,6 +290,17 @@ if __name__ == "__main__":
     # "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
     # "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
     # "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
+    # 'n16': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.111', 'version': '5.20.111', 'timestamp': '1626148242000'},
+    # 'n17': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M4', 'version': '1.0.0-M4', 'timestamp': '1583239943000'},
+    # 'n18': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M3', 'version': '1.0.0-M3', 'timestamp': '1579861029000'},
+    # 'n19': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.113', 'version': '5.20.113', 'timestamp': '1626179580000'},
+    # 'n20': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.112', 'version': '5.20.112', 'timestamp': '1626170945000'},
+    # 'n21': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.115', 'version': '5.20.115', 'timestamp': '1626340086000'},
+    # 'n22': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M2', 'version': '1.0.0-M2', 'timestamp': '1576600059000'},
+    # 'n23': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M6', 'version': '1.0.0-M6', 'timestamp': '1586476381000'},
+    # 'n24': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.114', 'version': '5.20.114', 'timestamp': '1626266264000'},
+    # 'n25': {'labels': ':Release', 'version': '0.5.0', 'timestamp': '1669329622000', 'id': 'com.splendo.kaluga:alerts-androidlib:0.5.0'},
+
     # }
 
 
@@ -267,16 +319,30 @@ if __name__ == "__main__":
     #     ("n4", "n14", {"label": "relationship_AR"}),
     #     ("n13", "n0", {"label": "relationship_AR"}),
     #     ("n10", "n15", {"label": "relationship_AR"}),
+    #     ("n1", "n16", {"label": "relationship_AR"}),
+    #     ("n19", "n25", {"label": "relationship_AR"}),
+    #     ("n5", "n21", {"label": "relationship_AR"}),
+    #     ("n21", "n23", {"label": "relationship_AR"}),
+    #     ("n19", "n24", {"label": "relationship_AR"}),
+    #     ("n4", "n19", {"label": "relationship_AR"}),
     # ]
     
 
     caudiscover = CauDiscover(nodes, edges, sever_score_map)
-    # prepare input from nodes and edges
-    df = caudiscover._data_create()
+
+    cve_data_path = Path.cwd().parent.joinpath("data", 'cve_data.csv')
+
+    if cve_data_path.exists():
+        df = dd.read_csv(cve_data_path.as_posix())
+    else:
+        # prepare input from nodes and edges
+        df = caudiscover._data_create()
+        df.compute().to_csv(cve_data_path.as_posix(),index=False)
+    
     # extrat the features part out of node
     # ------ discover at scale process ---------
     pruned_G = caudiscover.das_dis_cve(df)
-    
+
     ## compute causal chain
     shortest_paths, longest_chain = caudiscover.causal_chain_length(pruned_G)
 
