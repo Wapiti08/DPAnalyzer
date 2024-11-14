@@ -69,6 +69,120 @@ class CauDiscover:
         return [node_id for node_id, node in self.nodes.items() if 'type' in node and \
                 node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]]
 
+    def get_timestamp(self, node:dict):
+        if "timestamp" in node:
+            return int(node["timestamp"])
+        else:
+            return 0
+
+    def popu_check(self, node: dict):
+        if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+            return True
+        else:
+            return False
+    
+    def speed_check(self, node: dict):
+        if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+            return True
+        else:
+            return False
+    
+    def fresh_check(self, node: dict):
+        if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+            return True
+        else:
+            return False
+
+    def find_two_hop_neighbors(self):
+        '''Finds two-hop neighbors in a directed graph (A -> B -> C, creating A -> C).'''
+        parent_to_children = {}
+        
+        # Step 1: Create a mapping of each parent to its children
+        for source, target, _ in self.edges:
+            attrs = self.nodes[source]
+            if self.cve_check(attrs) or self.fresh_check(attrs) or self.popu_check(attrs) or \
+                self.speed_check(attrs) or self.get_timestamp(attrs):
+                if source not in parent_to_children:
+                    parent_to_children[source] = []
+                parent_to_children[source].append(target)
+
+        two_hop_neighbors = {node: set() for node in self.nodes}
+
+        # Step 2: Identify two-hop neighbors (A -> C) through an intermediate node (B)
+        for parent, children in parent_to_children.items():
+            for child in children:
+                if child in parent_to_children:  # If the child has its own children
+                    for grandchild in parent_to_children[child]:
+                        if grandchild != parent:  # Avoid self-loops
+                            two_hop_neighbors[parent].add(grandchild)
+
+        # Convert sets to lists for consistency
+        return {node: list(neighbors) for node, neighbors in two_hop_neighbors.items()}
+
+    def _data_create_two_hop(self):
+        '''Creates a DataFrame based on 2-hop neighbor relationships instead of direct edges.'''
+        two_hop_neighbors = self.find_two_hop_neighbors()
+
+        # Initialize lists for DataFrame columns
+        node_ids, neighbor_ids = [], []
+        node_cve_exists_list, neighbor_cve_exists_list = [], []
+        node_cve_score_list, neighbor_cve_score_list = [], []
+        node_cve_num_list, neighbor_cve_num_list = [], []
+        time_list = []
+
+        # Traverse 2-hop neighbors for each node
+        for node, neighbors in two_hop_neighbors.items():
+            node_attrs = self.nodes[node]
+
+            # Initialize CVE attributes
+            node_cve_exists, node_cve_score, node_cve_num = 0, 0, 0
+
+            if self.cve_check(node_attrs):
+                node_cve_exists = 1
+                node_cve_list = self.str_to_json(node_attrs["value"])['cve']
+                node_cve_score = sum([self.severity_map.get(cve["severity"], 0) for cve in node_cve_list])
+                node_cve_num = len(node_cve_list)
+
+            # Traverse each 2-hop neighbor
+            for neighbor in neighbors:
+                neighbor_attrs = self.nodes[neighbor]
+
+                neighbor_cve_exists, neighbor_cve_score, neighbor_cve_num = 0, 0, 0
+
+                if self.cve_check(neighbor_attrs):
+                    neighbor_cve_exists = 1
+                    neighbor_cve_list = self.str_to_json(neighbor_attrs["value"])['cve']
+                    neighbor_cve_score = sum([self.severity_map.get(cve["severity"], 0) for cve in neighbor_cve_list])
+                    neighbor_cve_num = len(neighbor_cve_list)
+
+                # Append data for each (node, neighbor) pair
+                node_ids.append(node)
+                neighbor_ids.append(neighbor)
+                node_cve_exists_list.append(node_cve_exists)
+                node_cve_score_list.append(node_cve_score)
+                node_cve_num_list.append(node_cve_num)
+                neighbor_cve_exists_list.append(neighbor_cve_exists)
+                neighbor_cve_score_list.append(neighbor_cve_score)
+                neighbor_cve_num_list.append(neighbor_cve_num)
+                time_list.append(self.get_timestamp(neighbor_attrs))
+
+        # Create a Dask DataFrame
+        cve_features = {
+            "source": node_ids,
+            "target": neighbor_ids,
+            "node_cve_exists": node_cve_exists_list,
+            "node_cve_score": node_cve_score_list,
+            "node_cve_num": node_cve_num_list,
+            "neighbor_cve_exists": neighbor_cve_exists_list,
+            "neighbor_cve_score": neighbor_cve_score_list,
+            "neighbor_cve_num": neighbor_cve_num_list,
+            "timestamp": time_list,
+        }
+        df = dd.from_pandas(pd.DataFrame(cve_features), npartitions=4)
+
+        return df
+
+
     def _data_create(self,):
         ''' create dataframe based on attribute info
 
@@ -180,7 +294,6 @@ class CauDiscover:
         
         # filter only CVE-related nodes and prune edges
         pruned_G = self.prune_cve_edges(data, sign_level)
-
         # score the pruned graph structure
         bic_score = self.score_cve_graph(pruned_G, data)
         logger.info(f"BIC score of pruned graph: {bic_score}")
@@ -262,82 +375,92 @@ def load_data(file_path):
 
 if __name__ == "__main__":
     
-    file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
+    # file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
 
-    # read nodes and edges
-    nodes, edges = load_data(file_path)
+    # # read nodes and edges
+    # nodes, edges = load_data(file_path)
 
     # Example nodes with detailed attributes
-    # nodes = {
-    # "n1":  {'labels': ':AddedValue', 
-    #         'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-    #         },
-    # "n2": {'labels': ':AddedValue', 
-    #        'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-    #        },
-    # "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-    #        },
-    # "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    # "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    # "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    # "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    # "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    # "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
-    # "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
-    # "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
-    # "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
-    # "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
-    # "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
-    # "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
-    # "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
-    # 'n16': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.111', 'version': '5.20.111', 'timestamp': '1626148242000'},
-    # 'n17': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M4', 'version': '1.0.0-M4', 'timestamp': '1583239943000'},
-    # 'n18': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M3', 'version': '1.0.0-M3', 'timestamp': '1579861029000'},
-    # 'n19': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.113', 'version': '5.20.113', 'timestamp': '1626179580000'},
-    # 'n20': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.112', 'version': '5.20.112', 'timestamp': '1626170945000'},
-    # 'n21': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.115', 'version': '5.20.115', 'timestamp': '1626340086000'},
-    # 'n22': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M2', 'version': '1.0.0-M2', 'timestamp': '1576600059000'},
-    # 'n23': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M6', 'version': '1.0.0-M6', 'timestamp': '1586476381000'},
-    # 'n24': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.114', 'version': '5.20.114', 'timestamp': '1626266264000'},
-    # 'n25': {'labels': ':Release', 'version': '0.5.0', 'timestamp': '1669329622000', 'id': 'com.splendo.kaluga:alerts-androidlib:0.5.0'},
+    nodes = {
+    "n1":  {'labels': ':AddedValue', 
+            'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+            },
+    "n2": {'labels': ':AddedValue', 
+           'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
+    "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
+    "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
+    "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
+    "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
+    "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
+    "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
+    "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
+    'n16': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.111', 'version': '5.20.111', 'timestamp': '1626148242000'},
+    'n17': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M4', 'version': '1.0.0-M4', 'timestamp': '1583239943000'},
+    'n18': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M3', 'version': '1.0.0-M3', 'timestamp': '1579861029000'},
+    'n19': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.113', 'version': '5.20.113', 'timestamp': '1626179580000'},
+    'n20': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.112', 'version': '5.20.112', 'timestamp': '1626170945000'},
+    'n21': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.115', 'version': '5.20.115', 'timestamp': '1626340086000'},
+    'n22': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M2', 'version': '1.0.0-M2', 'timestamp': '1576600059000'},
+    'n23': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M6', 'version': '1.0.0-M6', 'timestamp': '1586476381000'},
+    'n24': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.114', 'version': '5.20.114', 'timestamp': '1626266264000'},
+    'n25': {'labels': ':Release', 'version': '0.5.0', 'timestamp': '1669329622000', 'id': 'com.splendo.kaluga:alerts-androidlib:0.5.0'},
 
-    # }
+    }
 
 
-    # # Example edges
-    # edges = [
-    #     ("n1", "n2", {"label": "relationship_AR"}),
-    #     ("n1", "n12", {"label": "relationship_AR"}),
-    #     ("n5", "n3", {"label": "relationship_AR"}),
-    #     ("n1", "n6", {"label": "relationship_AR"}),
-    #     ("n7", "n3", {"label": "relationship_AR"}),
-    #     ("n1", "n11", {"label": "relationship_AR"}),
-    #     ("n8", "n3", {"label": "relationship_AR"}),
-    #     ("n4", "n7", {"label": "relationship_AR"}),
-    #     ("n10", "n12", {"label": "relationship_AR"}),
-    #     ("n5", "n13", {"label": "relationship_AR"}),
-    #     ("n4", "n14", {"label": "relationship_AR"}),
-    #     ("n13", "n0", {"label": "relationship_AR"}),
-    #     ("n10", "n15", {"label": "relationship_AR"}),
-    #     ("n1", "n16", {"label": "relationship_AR"}),
-    #     ("n19", "n25", {"label": "relationship_AR"}),
-    #     ("n5", "n21", {"label": "relationship_AR"}),
-    #     ("n21", "n23", {"label": "relationship_AR"}),
-    #     ("n19", "n24", {"label": "relationship_AR"}),
-    #     ("n4", "n19", {"label": "relationship_AR"}),
-    # ]
+    # Example edges
+    edges = [
+        ("n1", "n2", {"label": "relationship_AR"}),
+        ("n1", "n12", {"label": "relationship_AR"}),
+        ("n5", "n3", {"label": "relationship_AR"}),
+        ("n1", "n6", {"label": "relationship_AR"}),
+        ("n7", "n3", {"label": "relationship_AR"}),
+        ("n1", "n11", {"label": "relationship_AR"}),
+        ("n8", "n3", {"label": "relationship_AR"}),
+        ("n4", "n7", {"label": "relationship_AR"}),
+        ("n10", "n12", {"label": "relationship_AR"}),
+        ("n5", "n13", {"label": "relationship_AR"}),
+        ("n4", "n14", {"label": "relationship_AR"}),
+        ("n13", "n0", {"label": "relationship_AR"}),
+        ("n10", "n15", {"label": "relationship_AR"}),
+        ("n1", "n16", {"label": "relationship_AR"}),
+        ("n19", "n25", {"label": "relationship_AR"}),
+        ("n5", "n21", {"label": "relationship_AR"}),
+        ("n21", "n23", {"label": "relationship_AR"}),
+        ("n19", "n24", {"label": "relationship_AR"}),
+        ("n4", "n19", {"label": "relationship_AR"}),
+    ]
     
 
     caudiscover = CauDiscover(nodes, edges, sever_score_map)
 
-    cve_data_path = Path.cwd().parent.joinpath("data", 'cve_data.csv')
+    # cve_data_path = Path.cwd().parent.joinpath("data", 'cve_data.csv')
 
-    if cve_data_path.exists():
-        df = dd.read_csv(cve_data_path.as_posix())
+    # if cve_data_path.exists():
+    #     df = dd.read_csv(cve_data_path.as_posix())
+    # else:
+    #     # prepare input from nodes and edges
+    #     df = caudiscover._data_create()
+    #     df.compute().to_csv(cve_data_path.as_posix(),index=False)
+
+    cve_siblings_data_path = Path.cwd().parent.joinpath("data", 'cve_2_siblings_data.csv')
+
+    if cve_siblings_data_path.exists():
+        df = dd.read_csv(cve_siblings_data_path.as_posix())
     else:
         # prepare input from nodes and edges
-        df = caudiscover._data_create()
-        df.compute().to_csv(cve_data_path.as_posix(),index=False)
+        df = caudiscover._data_create_two_hop()
+        df.compute().to_csv(cve_siblings_data_path.as_posix(),index=False)
+
     
     # extrat the features part out of node
     # ------ discover at scale process ---------

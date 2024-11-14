@@ -53,7 +53,8 @@ class EigenCent:
         self.severity_map = severity_map
         # consider nodes with all attributes
         self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(attrs) or \
-                      self.fresh_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs)}
+                      self.fresh_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs) or
+                      self.get_timestamp(attrs)}
         # self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(attrs) or \
         #             self.popu_check(attrs) or self.speed_check(attrs)}
         # self.graph = {node: [] for node in nodes.keys()}
@@ -71,6 +72,12 @@ class EigenCent:
                 # self.graph[target].append(source)
                 self.graph[source].append(target)
     
+    def get_timestamp(self, node:dict):
+        if "timestamp" in node:
+            return int(node["timestamp"])
+        else:
+            return 0
+
     def str_to_json(self, escaped_json_str):
         try:
             clean_str = escaped_json_str.replace('\\"', '"')
@@ -252,11 +259,11 @@ class EigenCent:
         '''
         attributes = ["freshness", "popularity", "speed", "severity"]
         X = self.node_attr_df[attributes]
-        # y = self.node_attr_df["indegree"]
-        y = self.node_attr_df["degree"]
+        y = self.node_attr_df["indegree"]
+        # y = self.node_attr_df["degree"]
 
-        # return self.node_attr_df[attributes + ["indegree"]].corr()
-        return self.node_attr_df[attributes + ["degree"]].corr()
+        return self.node_attr_df[attributes + ["indegree"]].corr()
+        # return self.node_attr_df[attributes + ["degree"]].corr()
     
 
     def _step_wise_reg(self, reg_thres, sele_features):
@@ -264,8 +271,8 @@ class EigenCent:
         
         '''
         init_features = self.node_attr_df[sele_features].columns.tolist()
-        # y = self.node_attr_df["indegree"]
-        y = self.node_attr_df["degree"].values
+        y = self.node_attr_df["indegree"].values
+        # y = self.node_attr_df["degree"].values
         
         best_features = []
         
@@ -323,18 +330,22 @@ class EigenCent:
         '''
         # perform correlation analysis for all features
         corr_results = self._corr_ana()
-        # sign_attrs = corr_results["indegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
-        sign_attrs = corr_results["degree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
+        logger.info(f"the correlation table is: {corr_results}")
+        sign_attrs = corr_results["indegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
+        # sign_attrs = corr_results["degree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
         # sign_attrs.remove("indegree")
-        if "degree" in sign_attrs:
-            sign_attrs.remove("degree")
+        # if "degree" in sign_attrs:
+        #     sign_attrs.remove("degree")
+
+        if "indegree" in sign_attrs:
+            sign_attrs.remove("indegree")
     
         logger.info(f"Left important features after correlation analyis are: {sign_attrs}")
 
         # run step-wise regression using all features at once
-        # df = self.node_attr_df[sign_attrs + ["indegree"]]
+        df = self.node_attr_df[sign_attrs + ["indegree"]]
         # create a new separate framework
-        df = self.node_attr_df[sign_attrs + ["degree"]]
+        # df = self.node_attr_df[sign_attrs + ["degree"]]
         sele_features = self._step_wise_reg(reg_thres, sign_attrs)
         logger.info(f"Left important features after step-wise regression are: {sele_features}")
 
@@ -346,8 +357,8 @@ class EigenCent:
         for feature in sele_features:
             X_single = df[feature]
             X_single = sm.add_constant(X_single)
-            # model = sm.OLS(self.node_attr_df["indegree"], X_single).fit()
-            model = sm.OLS(df["degree"], X_single).fit()
+            model = sm.OLS(self.node_attr_df["indegree"], X_single).fit()
+            # model = sm.OLS(df["degree"], X_single).fit()
             contribution = model.rsquared
             contribution_scores[feature] = contribution
             total_contribution += contribution

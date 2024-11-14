@@ -1,4 +1,46 @@
 INFO:__main__:BIC score of pruned graph: -966992.9256226101
 INFO:__main__:The longest length of causal chain is: 1
 INFO:__main__:The longest chain is: ['target_cve_score', 'target_cve_num']
-INFO:__main__:The causal score computed from connections is: -4200755.9472946385
+INFO:__main__:The causal score computed from connections is: -4200755.94729463852024-11-13 14:44:05,333 - __main__ - INFO - Left important features after correlation analyis are: ['freshness', 'speed', 'severity']
+2024-11-13 14:44:05,335 - __main__ - INFO - The p-value for feature freshness is: 0.3413461016751054
+2024-11-13 14:44:05,337 - __main__ - INFO - The p-value for feature speed is: 0.09751858513693992
+2024-11-13 14:44:05,338 - __main__ - INFO - The p-value for feature severity is: 0.02297801352394668
+2024-11-13 14:44:05,339 - __main__ - INFO - The p-value for feature freshness is: 0.6468026040184194
+2024-11-13 14:44:05,341 - __main__ - INFO - The p-value for feature speed is: 0.1947501831448429
+2024-11-13 14:44:05,341 - __main__ - WARNING - No significant features found for addition.
+2024-11-13 14:44:05,341 - __main__ - INFO - Left important features after step-wise regression are: ['severity']
+2024-11-13 14:45:19,080 - __main__ - INFO - the correlation table is:             freshness  popularity     speed  severity    degree
+freshness    1.000000   -0.178839 -0.153483 -0.269610 -0.254577
+popularity  -0.178839    1.000000 -0.171643 -0.301511 -0.060302
+speed       -0.153483   -0.171643  1.000000 -0.258761 -0.428739
+severity    -0.269610   -0.301511 -0.258761  1.000000  0.563636
+degree      -0.254577   -0.060302 -0.428739  0.563636  1.000000
+2024-11-13 14:45:19,081 - __main__ - INFO - Left important features after correlation analyis are: ['freshness', 'speed', 'severity']
+2024-11-13 14:45:19,082 - __main__ - INFO - The p-value for feature freshness is: 0.3413461016751054
+2024-11-13 14:45:19,084 - __main__ - INFO - The p-value for feature speed is: 0.09751858513693992
+2024-11-13 14:45:19,085 - __main__ - INFO - The p-value for feature severity is: 0.02297801352394668
+2024-11-13 14:45:19,086 - __main__ - INFO - The p-value for feature freshness is: 0.6468026040184194
+2024-11-13 14:45:19,087 - __main__ - INFO - The p-value for feature speed is: 0.1947501831448429
+2024-11-13 14:45:19,087 - __main__ - WARNING - No significant features found for addition.
+2024-11-13 14:45:19,087 - __main__ - INFO - Left important features after step-wise regression are: ['severity']
+2024-11-13 14:47:11,440 - __main__ - INFO - the correlation table is:             freshness  popularity     speed  severity  indegree
+freshness    1.000000   -0.178839 -0.153483 -0.269610  0.098424
+popularity  -0.178839    1.000000 -0.171643 -0.301511 -0.034606
+speed       -0.153483   -0.171643  1.000000 -0.258761 -0.329745
+severity    -0.269610   -0.301511 -0.258761  1.000000 -0.010434
+indegree     0.098424   -0.034606 -0.329745 -0.010434  1.000000
+2024-11-13 14:47:11,441 - __main__ - INFO - Left important features after correlation analyis are: ['speed']
+2024-11-13 14:47:11,443 - __main__ - INFO - The p-value for feature speed is: 0.2123114501491237
+2024-11-13 14:47:11,443 - __main__ - WARNING - No significant features found for addition.
+2024-11-13 14:47:11,443 - __main__ - INFO - Left important features after step-wise regression are: []
+2024-11-14 11:55:19,292 - __main__ - INFO - the correlation table is:             freshness  popularity     speed  severity  indegree
+freshness    1.000000   -0.102933 -0.089182 -0.148571  0.120259
+popularity  -0.102933    1.000000 -0.099018 -0.164957  0.009154
+speed       -0.089182   -0.099018  1.000000 -0.142920 -0.252461
+severity    -0.148571   -0.164957 -0.142920  1.000000  0.047563
+indegree     0.120259    0.009154 -0.252461  0.047563  1.000000
+2024-11-14 11:55:19,293 - __main__ - INFO - Left important features after correlation analyis are: ['freshness', 'speed']
+2024-11-14 11:55:19,295 - __main__ - INFO - The p-value for feature freshness is: 0.558428396673841
+2024-11-14 11:55:19,296 - __main__ - INFO - The p-value for feature speed is: 0.2134006624771949
+2024-11-14 11:55:19,296 - __main__ - WARNING - No significant features found for addition.
+2024-11-14 11:55:19,296 - __main__ - INFO - Left important features after step-wise regression are: []

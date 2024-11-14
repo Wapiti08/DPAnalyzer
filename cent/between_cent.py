@@ -60,7 +60,12 @@ class BetCent:
         # return distances, filtered_paths
         return distances, paths
     
-
+    def get_timestamp(self, node:dict):
+        if "timestamp" in node:
+            return int(node["timestamp"])
+        else:
+            return 0
+        
     def has_severity(self, path, min_count):
         # filter paths to remove thoes that don't meet the minimum severity requirement
         # count how many nodes in the path(excluding start/end) have severity
@@ -170,7 +175,7 @@ class BetCent:
         # Step 1: Separate nodes into those with and without severity
         nodes_with_attrs = {node_id: attrs for node_id, attrs in self.nodes.items() if \
                             self.cve_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs) \
-                                or self.fresh_check(attrs)}
+                                or self.fresh_check(attrs) or self.get_timestamp(attrs)}
 
         # Step 2: Add nodes with severity to the graph
         for node_id, attrs in nodes_with_attrs.items():
