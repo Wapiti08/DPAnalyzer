@@ -322,8 +322,41 @@ class EigenCent:
         
         return best_features
 
+    def ave_weight(self, scaling_factor=2776187):
+        # return self.node_attr_df[attributes + ["degree"]].corr()
+        # Attributes and target
+        attributes = ["freshness", "popularity", "speed", "severity"]
+        y = self.node_attr_df["indegree"]
+        X = self.node_attr_df[attributes]
 
-    def _weight_ana(self, corr_thres=0.1, reg_thres=0.05):
+        # Step 1: Calculate correlations with the target
+        corr_values = X.corrwith(y).abs()  # Use absolute correlation values
+        logger.info(f"Correlation values with 'indegree': {corr_values.to_dict()}")
+
+        # Step 2: Normalize correlation values to get weights
+        total_corr = corr_values.sum()
+        if total_corr == 0:
+            logger.warning("All correlations are zero; defaulting to equal weights.")
+            normalized_corr = pd.Series(1 / len(attributes), index=attributes)
+        else:
+            normalized_corr = corr_values / total_corr
+        logger.info(f"Normalized attribute weights: {normalized_corr.to_dict()}")
+
+        # Step 3: Compute weighted average for each node
+        self.node_attr_df["weight"] = self.node_attr_df[attributes].apply(
+            lambda row: sum(row[attr] * normalized_corr[attr] for attr in attributes),
+            axis=1
+        )
+
+        # Step 4: Optionally normalize the 'weight' column to [0, 1]
+        min_weight = self.node_attr_df["weight"].min()
+        max_weight = self.node_attr_df["weight"].max()
+        if max_weight > min_weight:
+            self.node_attr_df["weight"] = (self.node_attr_df["weight"] - min_weight) / (max_weight - min_weight) * scaling_factor
+        return self.node_attr_df[["weight"]]
+
+
+    def _weight_ana(self, corr_thres=0.1, reg_thres=0.05, scaling_factor=2776187 ):
         ''' combine correlation and step-wise regression
         to analyse different attributes with their contribution
         
@@ -369,13 +402,17 @@ class EigenCent:
             axis=1
         )
 
-        # Step 5: Normalize the 'weight' to [0, 1] range
-        min_weight = self.node_attr_df["weight"].min()
-        max_weight = self.node_attr_df["weight"].max()
-        if max_weight > min_weight:
-            self.node_attr_df["weight"] = (self.node_attr_df["weight"] - min_weight) / (max_weight - min_weight)
+        self.node_attr_df['weights'] = self.norm_weight(self.node_attr_df, scaling_factor)
 
-        return self.node_attr_df[["weight"]]
+
+    def norm_weight(self, node_attr_df: pd.DataFrame, scaling_factor):
+        # Step 5: Normalize the 'weight' to [0, 1] range
+        min_weight = node_attr_df["weight"].min()
+        max_weight = node_attr_df["weight"].max()
+        if max_weight > min_weight:
+            node_attr_df["weight"] = (node_attr_df["weight"] - min_weight) / (max_weight - min_weight) * scaling_factor
+        return node_attr_df[["weight"]]
+
 
     def cal_weighted_eigen_cent_nx(self, ):
         
@@ -392,9 +429,16 @@ class EigenCent:
                 
         # set weights as attributes for nodes in self.graph
         weights = self.node_attr_df.set_index("id")["weight"].to_dict()
+
         for nid in G.nodes:
-            # G.nodes[nid]['weight'] = weights.get(nid, 1)
-            G.nodes[nid]['weight'] = weights.get(nid, 0)
+            G.nodes[nid]['weight'] = weights.get(nid, 1)
+            # G.nodes[nid]['weight'] = weights.get(nid, 0)
+
+        for u, v in G.edges:
+            source_weight = G.nodes[u].get('weight', 1)
+            target_weight = G.nodes[v].get('weight', 1)
+            G[u][v]['weight'] = source_weight * target_weight
+
 
         # G = nx.DiGraph()
         # # Add nodes with custom weights as attributes
@@ -407,8 +451,11 @@ class EigenCent:
         #     if target in self.nodes and source in self.nodes:
         #         G.add_edge(source, target)
 
-        # Calculate eigenvector centrality with weight
-        centrality = nx.eigenvector_centrality(G, max_iter=1000, tol=1e-06, weight="weight")
+            # Calculate eigenvector centrality with the modified edge weights
+        try:
+            centrality = nx.eigenvector_centrality(G, max_iter=1000, tol=1e-06, weight="weight")
+        except nx.PowerIterationFailedConvergence:
+            raise ValueError("Eigenvector centrality failed to converge")
 
         # Store top 10 nodes by centrality score
         top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
@@ -416,39 +463,39 @@ class EigenCent:
         return top_cents
 
 
-    def cal_weighted_eigen_cent(self, max_iterations=100, tolerance=1e-6):
-        ''' the attributes of original nodes have been quantified into numeric features as weight
+    # def cal_weighted_eigen_cent(self, max_iterations=100, tolerance=1e-6):
+    #     ''' the attributes of original nodes have been quantified into numeric features as weight
         
-        '''
-        # Extract weights only for nodes with severity > 0
-        weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
+    #     '''
+    #     # Extract weights only for nodes with severity > 0
+    #     weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
 
-        # Initialize centrality only for nodes in `self.graph`
-        centrality = {node: 0.0 for node in self.graph.keys()}
+    #     # Initialize centrality only for nodes in `self.graph`
+    #     centrality = {node: 1.0 for node in self.graph.keys()}
 
-        # update centrailities as per iteration
-        for _ in range(max_iterations):
-            new_centrality = {node: 0.0 for node in self.graph.keys()}
+    #     # update centrailities as per iteration
+    #     for _ in range(max_iterations):
+    #         new_centrality = {node: 0.0 for node in self.graph.keys()}
 
-            for node in self.graph:
-                for neighbor in self.graph[node]:
-                    new_centrality[node] += centrality[neighbor] * weights.get(neighbor, 0)
+    #         for node in self.graph:
+    #             for neighbor in self.graph[node]:
+    #                 new_centrality[node] += centrality[neighbor] * weights.get(neighbor, 0)
         
-            # normalize the centralities
-            norm = sum(new_centrality.values())    
-            if norm == 0:
-                break
-            new_centrality = {node: val / norm for node, val in new_centrality.items()}
+    #         # normalize the centralities
+    #         norm = sum(new_centrality.values())    
+    #         if norm == 0:
+    #             break
+    #         new_centrality = {node: val / norm for node, val in new_centrality.items()}
             
-            # check for convergence
-            if all(abs(new_centrality[node] - centrality[node]) < tolerance for node in self.nodes.keys()):
-                break
+    #         # check for convergence
+    #         if all(abs(new_centrality[node] - centrality[node]) < tolerance for node in self.nodes.keys()):
+    #             break
         
-            centrality = new_centrality
-        # Sort the centralities and get the top 10
-        top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
+    #         centrality = new_centrality
+    #     # Sort the centralities and get the top 10
+    #     top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
     
-        return top_cents
+    #     return top_cents
     
 
 if __name__ == "__main__":
@@ -499,13 +546,13 @@ if __name__ == "__main__":
         ("n7", "n3", {"label": "relationship_AR"}),
         ("n1", "n11", {"label": "relationship_AR"}),
         ("n8", "n3", {"label": "relationship_AR"}),
-        ("n4", "n7", {"label": "relationship_AR"}),
+        ("n4", "n7", {"label": "dependency"}),
         ("n10", "n12", {"label": "relationship_AR"}),
         ("n5", "n13", {"label": "relationship_AR"}),
         ("n4", "n14", {"label": "relationship_AR"}),
-        ("n13", "n0", {"label": "relationship_AR"}),
+        ("n13", "n0", {"label": "dependency"}),
         ("n10", "n15", {"label": "relationship_AR"}),
-        ("n1", "n16", {"label": "relationship_AR"}),
+        ("n1", "n16", {"label": "dependency"}),
         ("n19", "n25", {"label": "relationship_AR"}),
         ("n5", "n21", {"label": "relationship_AR"}),
         ("n21", "n23", {"label": "relationship_AR"}),
@@ -524,7 +571,8 @@ if __name__ == "__main__":
     
     # eigencenter._step_wise_reg(0.05, att_features)
     # analyse processed attributes
-    eigencenter._weight_ana()
+    # eigencenter._weight_ana()
+    eigencenter.ave_weight()
 
     # get the eigen centrality
     # print(eigencenter.cal_weighted_eigen_cent())

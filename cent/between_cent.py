@@ -9,7 +9,7 @@ import random
 from collections import deque
 import networkx as nx
 import json
-
+import pickle
 
 class BetCent:
     def __init__(self, nodes, edges):
@@ -169,13 +169,27 @@ class BetCent:
     #     sorted_betweenness = sorted(betweenness_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
     #     return sorted_betweenness
 
+    def cal_between_cent_release(self, graph_path):
+        with graph_path.open('rb') as fr:
+            G = pickle.load(graph_path)
+        # Step 6: Compute betweenness centrality
+        betweenness_scores = nx.betweenness_centrality(G)
+        # Step 5: Print the betweenness centrality scores
+        top_n = 10
+        sorted_betweenness = sorted(betweenness_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        return sorted_betweenness
+
+
     def cal_between_cent_nx(self,):
         G = nx.DiGraph()
 
         # Step 1: Separate nodes into those with and without severity
+        # nodes_with_attrs = {node_id: attrs for node_id, attrs in self.nodes.items() if \
+        #                     self.cve_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs) \
+        #                         or self.fresh_check(attrs) or self.get_timestamp(attrs)}
+
         nodes_with_attrs = {node_id: attrs for node_id, attrs in self.nodes.items() if \
-                            self.cve_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs) \
-                                or self.fresh_check(attrs) or self.get_timestamp(attrs)}
+                            self.cve_check(attrs) or self.get_timestamp(attrs)}
 
         # Step 2: Add nodes with severity to the graph
         for node_id, attrs in nodes_with_attrs.items():

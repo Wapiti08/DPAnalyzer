@@ -17,6 +17,7 @@ import json
 import logging
 import pickle
 from pathlib import Path
+from scipy.sparse import csr_matrix
 import re
 import pandas as pd
 
@@ -45,6 +46,12 @@ class CauDiscover:
         self.edges = edges
         self.severity_map = sever_score_map
     
+    def is_release(self, node:dict):
+        if node["labels"] == ":Release":
+            return True
+        else:
+            return False
+
     def get_timestamp(self, node:dict):
         if "timestamp" in node:
             return int(node["timestamp"])
@@ -92,32 +99,73 @@ class CauDiscover:
             return True
         else:
             return False
+    
+    def nodes_with_attrs_check(self, node: dict):
+        # if self.cve_check(node) or self.fresh_check(node) or self.popu_check(node) or \
+        #     self.speed_check(node) or self.get_timestamp(node):
+        if self.cve_check(node) or self.popu_check(node) or \
+            self.get_timestamp(node):
+            return True
+        else:
+            return False 
+
+    def nodes_with_attrs(self,):
+        return [node_id for node_id, node in self.nodes.items() if self.nodes_with_attrs_check(node)]
 
     def find_two_hop_neighbors(self):
-        '''Finds two-hop neighbors in a directed graph (A -> B -> C, creating A -> C).'''
-        parent_to_children = {}
-        
-        # Step 1: Create a mapping of each parent to its children
+        '''Finds two-hop neighbors specifically between release nodes in a directed graph.'''
+        release_to_release_neighbors = {}
+
         for source, target, _ in self.edges:
-            attrs = self.nodes[source]
-            if self.cve_check(attrs) or self.fresh_check(attrs) or self.popu_check(attrs) or \
-                self.speed_check(attrs) or self.get_timestamp(attrs):
-                if source not in parent_to_children:
-                    parent_to_children[source] = []
-                parent_to_children[source].append(target)
+            source_attrs = self.nodes[source]
+            target_attrs = self.nodes[target]
+            if self.nodes_with_attrs_check(source_attrs):
+                # Track only relationships where both source and target create a release-to-release chain
+                if self.is_release(source_attrs) and not self.is_release(target_attrs):
+                    # This is a release -> software edge; store the software's releases
+                    software_releases = release_to_release_neighbors.get(target, set())
+                    software_releases.add(source)
+                    release_to_release_neighbors[target] = software_releases
 
-        two_hop_neighbors = {node: set() for node in self.nodes}
+                elif not self.is_release(source_attrs) and self.is_release(target_attrs):
+                    # This is a software -> release edge; look for releases pointing to this software
+                    if source in release_to_release_neighbors:
+                        # Any existing releases pointing to this software form two-hop links
+                        for release in release_to_release_neighbors[source]:
+                            if release != target:  # Avoid self-loops
+                                # Initialize set for the release if it doesn’t exist
+                                if release not in release_to_release_neighbors:
+                                    release_to_release_neighbors[release] = set()
+                                release_to_release_neighbors[release].add(target)
 
-        # Step 2: Identify two-hop neighbors (A -> C) through an intermediate node (B)
-        for parent, children in parent_to_children.items():
-            for child in children:
-                if child in parent_to_children:  # If the child has its own children
-                    for grandchild in parent_to_children[child]:
-                        if grandchild != parent:  # Avoid self-loops
-                            two_hop_neighbors[parent].add(grandchild)
+        # Convert sets to lists for consistent output format
+        return {node: list(neighbors) for node, neighbors in release_to_release_neighbors.items()}
 
-        # Convert sets to lists for consistency
-        return {node: list(neighbors) for node, neighbors in two_hop_neighbors.items()}
+    # def find_two_hop_neighbors(self):
+    #     '''Finds two-hop neighbors in a directed graph (A -> B -> C, creating A -> C).'''
+    #     parent_to_children = {}
+        
+    #     # Step 1: Create a mapping of each parent to its children
+    #     for source, target, _ in self.edges:
+    #         attrs = self.nodes[source]
+    #         if self.cve_check(attrs) or self.fresh_check(attrs) or self.popu_check(attrs) or \
+    #             self.speed_check(attrs) or self.get_timestamp(attrs):
+    #             if source not in parent_to_children:
+    #                 parent_to_children[source] = []
+    #             parent_to_children[source].append(target)
+
+    #     two_hop_neighbors = {node: set() for node in self.nodes}
+
+    #     # Step 2: Identify two-hop neighbors (A -> C) through an intermediate node (B)
+    #     for parent, children in parent_to_children.items():
+    #         for child in children:
+    #             if child in parent_to_children:  # If the child has its own children
+    #                 for grandchild in parent_to_children[child]:
+    #                     if grandchild != parent:  # Avoid self-loops
+    #                         two_hop_neighbors[parent].add(grandchild)
+
+    #     # Convert sets to lists for consistency
+    #     return {node: list(neighbors) for node, neighbors in two_hop_neighbors.items()}
 
     def _data_create_two_hop(self):
         '''Creates a DataFrame based on 2-hop neighbor relationships instead of direct edges.'''
@@ -259,19 +307,20 @@ class CauDiscover:
         ''' prune edges among CVE nodes using conditional independence tests
         '''
         # consider nodes with CVEs
-        cve_nodes = self.get_cve_nodes()
-        cve_df = data_df[(data_df['source'].isin(cve_nodes)) | (data_df['target'].isin(cve_nodes))]
-        cve_data = cve_df.drop(columns = ["source", "target"])
-
+        nodes_with_attrs = self.nodes_with_attrs()
+        # cve_df = data_df[(data_df['source'].isin(cve_nodes)) | (data_df['target'].isin(cve_nodes))]
+        # cve_data = cve_df.drop(columns = ["source", "target"])
+        cve_data = data_df.drop(columns = ["source", "target"])
+        cve_data_sparse = csr_matrix(cve_data.values)
         # apply the PC algorithm    
         pc = PC(cve_data.compute())  # Use .compute() to get the actual data in memory for PC
         skeleton = pc.estimate(significance_level=sign_level,return_type="skeleton")
 
         # add edges that passed independence tests to a new graph
         pruned_G = nx.DiGraph()
-        pruned_G.add_nodes_from(cve_nodes)
+        pruned_G.add_nodes_from(nodes_with_attrs)
 
-        # get the first 
+        # get the first element
         for u, v in skeleton[0].edges():
             pruned_G.add_edge(u, v)
         
@@ -334,38 +383,29 @@ class CauDiscover:
         sum_seve_score = sum(cve_score_list)
         return sum_seve_score, len(cve_score_list)
 
-    def build_cve_metrics(self):
-        ''' build matrix including nodes with cve info
-        '''
-        features = []
+    # def build_cve_metrics(self, data_df):
+    #     ''' build matrix including nodes with cve info
+    #     '''
+    #     cve_data = data_df.drop(columns = ["source", "target"]).compute()
 
-        for node_id, node in self.nodes.items():
-            sum_cve_score, cve_list_len = self._get_sum_severity(node)
-            cve_info = [
-                int(self.cve_check(node)),  # whether exist
-                sum_cve_score,  # sum of cve score
-                cve_list_len  # number of cve
-            ]
+    #     scaler = StandardScaler()
+    #     return scaler.fit_transform(cve_data)
 
-            features.append(cve_info)
-
-        scaler = StandardScaler()
-        return scaler.fit_transform(np.array(features))
-
-    def causal_score(self, params, feature_matrix):
-        '''
-        :param params: the set of weights for each feature
-        '''
-        score = 0.0
-        for u, v, attr in self.edges:
-            u_index = int(re.search(r'\d+', u).group())
-            v_index = int(re.search(r'\d+', v).group())
-            feature_diff = np.abs(feature_matrix[u_index] - feature_matrix[v_index])
-            score += np.dot(params, feature_diff)
+    # def causal_score(self, params, feature_matrix):
+    #     '''
+    #     :param params: the set of weights for each feature
+    #     '''
+    #     score = 0.0
+    #     print(feature_matrix.shape)
+    #     for u, v, attr in self.edges:
+    #         u_index = int(re.search(r'\d+', u).group())
+    #         v_index = int(re.search(r'\d+', v).group())
+    #         feature_diff = np.abs(feature_matrix[u_index] - feature_matrix[v_index])
+    #         score += np.dot(params, feature_diff)
         
-        logger.info(f"The causal score computed from connections is: {-score}")
+    #     logger.info(f"The causal score computed from connections is: {-score}")
 
-        return -score
+    #     return -score
 
 
 def load_data(file_path):
@@ -443,23 +483,23 @@ if __name__ == "__main__":
 
     caudiscover = CauDiscover(nodes, edges, sever_score_map)
 
-    # cve_data_path = Path.cwd().parent.joinpath("data", 'cve_data.csv')
+    cve_data_path = Path.cwd().parent.joinpath("data", 'cve_data.csv')
 
-    # if cve_data_path.exists():
-    #     df = dd.read_csv(cve_data_path.as_posix())
-    # else:
-    #     # prepare input from nodes and edges
-    #     df = caudiscover._data_create()
-    #     df.compute().to_csv(cve_data_path.as_posix(),index=False)
-
-    cve_siblings_data_path = Path.cwd().parent.joinpath("data", 'cve_2_siblings_data.csv')
-
-    if cve_siblings_data_path.exists():
-        df = dd.read_csv(cve_siblings_data_path.as_posix())
+    if cve_data_path.exists():
+        df = dd.read_csv(cve_data_path.as_posix())
     else:
         # prepare input from nodes and edges
-        df = caudiscover._data_create_two_hop()
-        df.compute().to_csv(cve_siblings_data_path.as_posix(),index=False)
+        df = caudiscover._data_create()
+        df.compute().to_csv(cve_data_path.as_posix(),index=False)
+
+    # cve_siblings_data_path = Path.cwd().parent.joinpath("data", 'cve_2_siblings_data.csv')
+
+    # if cve_siblings_data_path.exists():
+    #     df = dd.read_csv(cve_siblings_data_path.as_posix())
+    # else:
+    #     # prepare input from nodes and edges
+    #     df = caudiscover._data_create_two_hop()
+    #     df.compute().to_csv(cve_siblings_data_path.as_posix(),index=False)
 
     
     # extrat the features part out of node
@@ -472,12 +512,12 @@ if __name__ == "__main__":
     # ----------- feature analysis ------------ 
 
     # compute cve metrics
-    feature_matrix = caudiscover.build_cve_metrics()
+    # feature_matrix = caudiscover.build_cve_metrics(df)
 
     # compute adjcency matrix
     # adj_matrix = caudiscover.adj_matrix_build()
 
-    num_features = 3
-    params = np.ones(num_features)
-    # compute causal score
-    cal_score = caudiscover.causal_score(params, feature_matrix)
+    # num_features = 7
+    # params = np.ones(num_features)
+    # # compute causal score
+    # cal_score = caudiscover.causal_score(params, feature_matrix)

@@ -41,4 +41,6 @@ def cal_infe( cve_data):
 
 
 if __name__ == "__main__":
+
+    
     cal_infe(cve_data)

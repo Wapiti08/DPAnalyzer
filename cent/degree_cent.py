@@ -3,6 +3,8 @@
  # @ Modified time: 2024-10-17 16:50:59
  # @ Description: function to calculate degree based on nodes and edges
  '''
+import pickle
+import networkx as nx
 
 def cal_degree_centrality(nodes, edges):
     '''
@@ -21,6 +23,14 @@ def cal_degree_centrality(nodes, edges):
     top_10 = sorted(degree_cent.items(), key=lambda x: x[1], reverse=True)[:10]
     return top_10
 
+def cal_degree_cent_releases(G):
+    # Calculate degree centrality for the directed graph
+    degree_centrality = nx.degree_centrality(G)
+    
+    # Sort the nodes based on degree centrality in descending order and get the top 10
+    top_10_nodes = sorted(degree_centrality.items(), key=lambda item: item[1], reverse=True)[:10]
+
+    return top_10_nodes
 
 if __name__ == "__main__":
 

@@ -17,3 +17,28 @@ INFO:__main__:The causal score computed from connections is: -4200755.9472946385
 2024-11-14 17:17:02,337 - __main__ - INFO - The longest length of causal chain is: 0
 2024-11-14 17:17:02,337 - __main__ - INFO - The longest chain is: None
 2024-11-14 17:17:02,338 - __main__ - INFO - The causal score computed from connections is: -83.73222625898417
+2024-11-14 19:04:16,242 - __main__ - INFO - BIC score of pruned graph: 0
+2024-11-14 19:04:16,242 - __main__ - INFO - The longest length of causal chain is: 0
+2024-11-14 19:04:16,242 - __main__ - INFO - The longest chain is: None
+2024-11-14 19:04:16,243 - __main__ - INFO - The causal score computed from connections is: -83.73222625898417
+2024-11-15 09:36:50,052 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-15 09:36:50,052 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-15 09:36:50,052 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
+2024-11-15 09:37:13,532 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-15 09:37:13,533 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-15 09:37:13,533 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
+2024-11-15 09:37:46,183 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-15 09:37:46,183 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-15 09:37:46,183 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
+2024-11-15 09:39:02,796 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-15 09:39:02,796 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-15 09:39:02,797 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
+2024-11-18 08:26:03,714 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-18 08:26:03,714 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-18 08:26:03,714 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
+2024-11-18 08:26:44,851 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-18 08:26:44,851 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-18 08:26:44,851 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
+2024-11-18 08:27:02,500 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-18 08:27:02,500 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-18 08:27:02,500 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
