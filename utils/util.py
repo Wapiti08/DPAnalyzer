@@ -5,12 +5,8 @@
  '''
 from lxml import etree
 
-def cus_graphml_loader(graphml_file_path):
-    ''' memory efficient way to parse graphml into chunks instead of networkx
-    
-    '''
-
-    context = etree.iterparse(graphml_file_path, events=("start", "end"))
+def parse_graphml_in_chunks(file_path):
+    context = etree.iterparse(file_path, events=("start", "end"))
     nodes = {}
     edges = []
     

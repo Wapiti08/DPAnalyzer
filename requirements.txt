@@ -12,3 +12,4 @@ statsmodels==0.14.4
 lxml==5.3.0
 pywhy-graphs=0.1.0
 pgmpy==0.1.26
+python-dotenv==1.0.1
