@@ -72,12 +72,17 @@ class EigenCent:
                 # self.graph[target].append(source)
                 self.graph[source].append(target)
     
-    def get_timestamp(self, node:dict):
+    def get_addvalue_edges(self,):
+        # source node is release, target node is addedvalue
+        self.addvalue_edges_dict = {source: target for source, target, edge_att in self.edges if edge_att['label'] == "addedValues"}
+    
+    def get_timestamp(self, target:str):
+        node = self.nodes[target]
         if "timestamp" in node:
             return int(node["timestamp"])
         else:
             return 0
-
+        
     def str_to_json(self, escaped_json_str):
         try:
             clean_str = escaped_json_str.replace('\\"', '"')
@@ -86,37 +91,42 @@ class EigenCent:
             print(f"Error parsing JSON: {e}")
             return None
 
-    def popu_check(self, node: dict):
+    def popu_check(self, target: str):
+        node = self.nodes[self.addvalue_edges_dict[target]]
         if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
             return True
         else:
             return False
     
-    def speed_check(self, node: dict):
+    def speed_check(self, target: str):
+        node = self.nodes[self.addvalue_edges_dict[target]]
         if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
             return True
         else:
             return False
     
-    def fresh_check(self, node: dict):
+    def fresh_check(self, target: str):
+        node = self.nodes[self.addvalue_edges_dict[target]]
         if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
             return True
         else:
             return False
 
-    def cve_check(self, node:dict):
+    def cve_check(self, target:str):
+        node = self.nodes[self.addvalue_edges_dict[target]]
         if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
             return True
         else:
             return False
 
-    def _get_sum_severity(self, node):
+    def _get_sum_severity(self, target:str):
         ''' convert severity string to numeric value and sum all severities
         
         '''
         # get the list
-        if self.cve_check(node):
-            cve_list = self.str_to_json(node["value"])['cve']
+        if self.cve_check(target):
+            node = self.addvalue_edges_dict[target]
+            cve_list = self.str_to_json(self.nodes[node]["value"])['cve']
         else:
             return 0
         # get the string value in every list

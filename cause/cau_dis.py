@@ -46,6 +46,13 @@ class CauDiscover:
         self.edges = edges
         self.severity_map = sever_score_map
     
+
+    def is_addvalue(self, node:dict):
+        if node["labels"] == ":AddedValue":
+            return True
+        else:
+            return False
+        
     def is_release(self, node:dict):
         if node["labels"] == ":Release":
             return True
@@ -121,13 +128,13 @@ class CauDiscover:
             target_attrs = self.nodes[target]
             if self.nodes_with_attrs_check(source_attrs):
                 # Track only relationships where both source and target create a release-to-release chain
-                if self.is_release(source_attrs) and not self.is_release(target_attrs):
+                if self.is_addvalue(source_attrs) and target_attrs['label']=="relationship_AR":
                     # This is a release -> software edge; store the software's releases
                     software_releases = release_to_release_neighbors.get(target, set())
                     software_releases.add(source)
                     release_to_release_neighbors[target] = software_releases
 
-                elif not self.is_release(source_attrs) and self.is_release(target_attrs):
+                elif not self.is_release(source_attrs) and self.is_addvalue(target_attrs):
                     # This is a software -> release edge; look for releases pointing to this software
                     if source in release_to_release_neighbors:
                         # Any existing releases pointing to this software form two-hop links
