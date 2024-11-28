@@ -6,6 +6,8 @@
 import pickle
 import networkx as nx
 import json
+from collections import defaultdict
+
 
 def cal_degree_centrality(nodes, edges):
     '''
@@ -35,14 +37,23 @@ def str_to_json(escaped_json_str):
 
 def get_addvalue_edges(edges):
     # source node is release, target node is addedvalue
-    return {source: target for source, target, edge_att in edges if edge_att['label'] == "addedValues"}
+    addvalue_dict = defaultdict(list)
+
+    # Iterate over the edges and add the targets for each source where the label is 'addedValues'
+    for source, target, edge_att in edges:
+        if edge_att['label'] == "addedValues":
+            addvalue_dict[source].append(target)
+
+    return addvalue_dict
 
 def cve_check(target:str, nodes, addvalue_edges_dict):
-    node = nodes[addvalue_edges_dict[target]]
-    if 'type' in node and node['type'] == "CVE" and str_to_json(node["value"])['cve'] !=[]:
-        return True
-    else:
-        return False
+    node_list = addvalue_edges_dict[target]
+    for node_id in node_list:
+        node = nodes[node_id]
+        if node['type'] == "CVE" and str_to_json(node["value"])['cve'] !=[]:
+            return True
+        else:
+            return False
 
 
 def cal_degree_software_with_cve(nodes, edges, addvalue_edges_dict):

@@ -20,6 +20,7 @@ import networkx as nx
 import logging
 import numpy as np
 import json
+from collections import defaultdict
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -72,10 +73,6 @@ class EigenCent:
                 # self.graph[target].append(source)
                 self.graph[source].append(target)
     
-    def get_addvalue_edges(self,):
-        # source node is release, target node is addedvalue
-        self.addvalue_edges_dict = {source: target for source, target, edge_att in self.edges if edge_att['label'] == "addedValues"}
-    
     def get_timestamp(self, target:str):
         node = self.nodes[target]
         if "timestamp" in node:
@@ -91,42 +88,66 @@ class EigenCent:
             print(f"Error parsing JSON: {e}")
             return None
 
+    def get_addvalue_edges(self,):
+        # source node is release, target node is addedvalue
+        self.addvalue_dict = defaultdict(list)
+
+        # Iterate over the edges and add the targets for each source where the label is 'addedValues'
+        for source, target, edge_att in self.edges:
+            if edge_att['label'] == "addedValues":
+                self.addvalue_dict[source].append(target)
+
     def popu_check(self, target: str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+                return True
+            else:
+                return False
     
     def speed_check(self, target: str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+                return True
+            else:
+                return False
     
     def fresh_check(self, target: str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+                return True
+            else:
+                return False
 
     def cve_check(self, target:str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
+                return True
+            else:
+                return False
 
     def _get_sum_severity(self, target:str):
         ''' convert severity string to numeric value and sum all severities
         
         '''
         # get the list
+        cve_list = []
         if self.cve_check(target):
-            node = self.addvalue_edges_dict[target]
-            cve_list = self.str_to_json(self.nodes[node]["value"])['cve']
+            node_list = self.addvalue_dict[target]
+            for node_id in node_list:
+                node = self.nodes[node_id]  
+                cve_list.extend(self.str_to_json(node["value"])['cve'])
         else:
             return 0
         # get the string value in every list
@@ -145,11 +166,15 @@ class EigenCent:
 
         # extract freshness values and handle missing cases
         for id, node in self.nodes.items():
-            if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+            if self.fresh_check(id):
                 # convert string to json
-                node = self.str_to_json(node["value"])
-                numberMissedRelease = int(node["freshness"]["numberMissedRelease"])
-                outdatedTimeInMs = int(node["freshness"]["outdatedTimeInMs"])
+                node_list = self.addvalue_dict[id]
+                for node_id in node_list:
+                    node = self.nodes[node_id]
+                    value_dict = self.str_to_json(node["value"])
+                    if node['type'] == "FRESHNESS" and value_dict != {}:
+                        numberMissedRelease = int(value_dict["freshness"]["numberMissedRelease"])
+                        outdatedTimeInMs = int(value_dict["freshness"]["outdatedTimeInMs"])
             else:
                 numberMissedRelease = 0
                 outdatedTimeInMs = 0
@@ -201,20 +226,28 @@ class EigenCent:
         
         '''
         for id, node in self.nodes.items():
-            if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
-                node["POPULARITY_1_YEAR"] = int(node["value"])
-            else:
-                node["POPULARITY_1_YEAR"] = 0
+            if self.popu_check(id):
+                node_list = self.addvalue_dict[id]
+                for node_id in node_list:
+                    node = self.nodes[node_id]
+                    if node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+                        node["POPULARITY_1_YEAR"] = int(node["value"])
+                    else:
+                        node["POPULARITY_1_YEAR"] = 0
         
     def _speed_proc(self,):
         ''' process potential missing popularity
         
         '''
         for id, node in self.nodes.items():
-            if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
-                 node["SPEED"] = float(node["value"])
-            else:
-                node["SPEED"] = 0
+            if self.speed_check(id):
+                node_list = self.addvalue_dict[id]
+                for node_id in node_list:
+                    node = self.nodes[node_id]
+                    if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+                        node["SPEED"] = float(node["value"])
+                    else:
+                        node["SPEED"] = 0
     
     def _quan_attrs(self,):
         ''' initialize quantify attributes of nodes

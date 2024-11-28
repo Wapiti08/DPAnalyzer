@@ -20,6 +20,8 @@ from pathlib import Path
 from scipy.sparse import csr_matrix
 import re
 import pandas as pd
+from collections import defaultdict
+
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s]: %(message)s',
@@ -73,45 +75,62 @@ class CauDiscover:
             print(f"Error parsing JSON: {e}")
             return None
 
-    def cve_check(self, node:dict):
-        if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
-            return True
-        else:
-            return False
+    def get_addvalue_edges(self,):
+        # source node is release, target node is addedvalue
+        self.addvalue_dict = defaultdict(list)
+
+        # Iterate over the edges and add the targets for each source where the label is 'addedValues'
+        for source, target, edge_att in self.edges:
+            if edge_att['label'] == "addedValues":
+                self.addvalue_dict[source].append(target)
+
+    def popu_check(self, target: str):
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+                return True
+            else:
+                return False
+    
+    def speed_check(self, target: str):
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+                return True
+            else:
+                return False
+    
+    def fresh_check(self, target: str):
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+                return True
+            else:
+                return False
+
+    def cve_check(self, target:str):
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
+                return True
+            else:
+                return False
 
     def get_cve_nodes(self, ):
-        return [node_id for node_id, node in self.nodes.items() if 'type' in node and \
-                node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]]
+        return [node_id for node_id, node in self.nodes.items() if self.cve_check(node_id)]
 
-    def get_timestamp(self, node:dict):
-        if "timestamp" in node:
-            return int(node["timestamp"])
-        else:
-            return 0
 
-    def popu_check(self, node: dict):
-        if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
-            return True
-        else:
-            return False
-    
-    def speed_check(self, node: dict):
-        if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
-            return True
-        else:
-            return False
-    
-    def fresh_check(self, node: dict):
-        if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
-            return True
-        else:
-            return False
-    
     def nodes_with_attrs_check(self, node: dict):
-        # if self.cve_check(node) or self.fresh_check(node) or self.popu_check(node) or \
-        #     self.speed_check(node) or self.get_timestamp(node):
-        if self.cve_check(node) or self.popu_check(node) or \
-            self.get_timestamp(node):
+        if self.cve_check(node) or self.fresh_check(node) or self.popu_check(node) or \
+            self.speed_check(node) or self.get_timestamp(node):
             return True
         else:
             return False 
@@ -148,31 +167,6 @@ class CauDiscover:
         # Convert sets to lists for consistent output format
         return {node: list(neighbors) for node, neighbors in release_to_release_neighbors.items()}
 
-    # def find_two_hop_neighbors(self):
-    #     '''Finds two-hop neighbors in a directed graph (A -> B -> C, creating A -> C).'''
-    #     parent_to_children = {}
-        
-    #     # Step 1: Create a mapping of each parent to its children
-    #     for source, target, _ in self.edges:
-    #         attrs = self.nodes[source]
-    #         if self.cve_check(attrs) or self.fresh_check(attrs) or self.popu_check(attrs) or \
-    #             self.speed_check(attrs) or self.get_timestamp(attrs):
-    #             if source not in parent_to_children:
-    #                 parent_to_children[source] = []
-    #             parent_to_children[source].append(target)
-
-    #     two_hop_neighbors = {node: set() for node in self.nodes}
-
-    #     # Step 2: Identify two-hop neighbors (A -> C) through an intermediate node (B)
-    #     for parent, children in parent_to_children.items():
-    #         for child in children:
-    #             if child in parent_to_children:  # If the child has its own children
-    #                 for grandchild in parent_to_children[child]:
-    #                     if grandchild != parent:  # Avoid self-loops
-    #                         two_hop_neighbors[parent].add(grandchild)
-
-    #     # Convert sets to lists for consistency
-    #     return {node: list(neighbors) for node, neighbors in two_hop_neighbors.items()}
 
     def _data_create_two_hop(self):
         '''Creates a DataFrame based on 2-hop neighbor relationships instead of direct edges.'''
@@ -389,31 +383,6 @@ class CauDiscover:
         cve_score_list = [self.severity_map.get(cve_str,0) for cve_str in cve_seve_str_list]
         sum_seve_score = sum(cve_score_list)
         return sum_seve_score, len(cve_score_list)
-
-    # def build_cve_metrics(self, data_df):
-    #     ''' build matrix including nodes with cve info
-    #     '''
-    #     cve_data = data_df.drop(columns = ["source", "target"]).compute()
-
-    #     scaler = StandardScaler()
-    #     return scaler.fit_transform(cve_data)
-
-    # def causal_score(self, params, feature_matrix):
-    #     '''
-    #     :param params: the set of weights for each feature
-    #     '''
-    #     score = 0.0
-    #     print(feature_matrix.shape)
-    #     for u, v, attr in self.edges:
-    #         u_index = int(re.search(r'\d+', u).group())
-    #         v_index = int(re.search(r'\d+', v).group())
-    #         feature_diff = np.abs(feature_matrix[u_index] - feature_matrix[v_index])
-    #         score += np.dot(params, feature_diff)
-        
-    #     logger.info(f"The causal score computed from connections is: {-score}")
-
-    #     return -score
-
 
 def load_data(file_path):
     with file_path.open('rb') as f:

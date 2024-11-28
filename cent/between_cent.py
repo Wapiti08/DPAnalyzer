@@ -10,6 +10,8 @@ from collections import deque
 import networkx as nx
 import json
 import pickle
+from collections import defaultdict
+
 
 class BetCent:
     def __init__(self, nodes, edges):
@@ -19,12 +21,7 @@ class BetCent:
         '''
         self.nodes = nodes
         self.edges = edges
-    
-    def get_addvalue_edges(self,):
-        # source node is release, target node is addedvalue
-        self.addvalue_edges_dict = {source: target for source, target, edge_att in self.edges if edge_att['label'] == "addedValues"}
-
-
+        
     def str_to_json(self, escaped_json_str):
         try:
             clean_str = escaped_json_str.replace('\\"', '"')
@@ -71,7 +68,7 @@ class BetCent:
             return int(node["timestamp"])
         else:
             return 0
-        
+
     def has_severity(self, path, min_count):
         # filter paths to remove thoes that don't meet the minimum severity requirement
         # count how many nodes in the path(excluding start/end) have severity
@@ -79,33 +76,55 @@ class BetCent:
         seve_count = sum(1 for node in path[1:-1] if self.cve_check(self.nodes[node]))
         return seve_count >= min_count
 
+
+    def get_addvalue_edges(self,):
+        # source node is release, target node is addedvalue
+        self.addvalue_dict = defaultdict(list)
+
+        # Iterate over the edges and add the targets for each source where the label is 'addedValues'
+        for source, target, edge_att in self.edges:
+            if edge_att['label'] == "addedValues":
+                self.addvalue_dict[source].append(target)
+
     def popu_check(self, target: str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+                return True
+            else:
+                return False
     
     def speed_check(self, target: str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+                return True
+            else:
+                return False
     
     def fresh_check(self, target: str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+                return True
+            else:
+                return False
 
     def cve_check(self, target:str):
-        node = self.nodes[self.addvalue_edges_dict[target]]
-        if 'type' in node and node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
-            return True
-        else:
-            return False
+        # get attribute nodes
+        node_list = self.addvalue_dict[target]
+        for node_id in node_list:
+            node = self.nodes[node_id]
+            if node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
+                return True
+            else:
+                return False
 
     def cal_between_cent_nx(self,):
         G = nx.DiGraph()
