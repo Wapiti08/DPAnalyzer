@@ -52,20 +52,11 @@ class EigenCent:
         self.edges = edges
         self.features = features
         self.severity_map = severity_map
+        self.get_addvalue_edges()
         # consider nodes with all attributes
-        self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(attrs) or \
-                      self.fresh_check(attrs) or self.popu_check(attrs) or self.speed_check(attrs) or
-                      self.get_timestamp(attrs)}
-        # self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(attrs) or \
-        #             self.popu_check(attrs) or self.speed_check(attrs)}
-        # self.graph = {node: [] for node in nodes.keys()}
-
-        # create the graph skeleton 
-        # for source, target, _ in edges:
-        #     # consider both incoming and outcoming edges for eigenvector
-        #     if target in self.graph and source in self.graph:
-        #         self.graph[target].append(source)
-        #         self.graph[source].append(target)
+        self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(node) or \
+                      self.fresh_check(node) or self.popu_check(node) or self.speed_check(node) or
+                      self.get_timestamp(node)}
 
         for source, target, _ in edges:
             # consider both incoming and outcoming edges for eigenvector
@@ -147,7 +138,12 @@ class EigenCent:
             node_list = self.addvalue_dict[target]
             for node_id in node_list:
                 node = self.nodes[node_id]  
-                cve_list.extend(self.str_to_json(node["value"])['cve'])
+                node_value_dict = self.str_to_json(node["value"])
+                try:
+                    cve_list.extend(node_value_dict['cve'])
+                except:
+                    continue
+                
         else:
             return 0
         # get the string value in every list
@@ -232,8 +228,8 @@ class EigenCent:
                     node = self.nodes[node_id]
                     if node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
                         node["POPULARITY_1_YEAR"] = int(node["value"])
-                    else:
-                        node["POPULARITY_1_YEAR"] = 0
+            else:
+                node["POPULARITY_1_YEAR"] = 0
         
     def _speed_proc(self,):
         ''' process potential missing popularity
@@ -246,8 +242,8 @@ class EigenCent:
                     node = self.nodes[node_id]
                     if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
                         node["SPEED"] = float(node["value"])
-                    else:
-                        node["SPEED"] = 0
+            else:
+                node["SPEED"] = 0
     
     def _quan_attrs(self,):
         ''' initialize quantify attributes of nodes
@@ -282,15 +278,19 @@ class EigenCent:
 
         for nid, node in self.nodes.items():
             if nid in self.graph:
-                data["id"].append(nid)
-                # replace dict freshness with freshness_score
-                data["freshness"].append(node["freshness_score"])
-                data["popularity"].append(node["POPULARITY_1_YEAR"])
-                data["speed"].append(node["SPEED"])
-                severity_value = self._get_sum_severity(node)
-                data["severity"].append(severity_value)
-                data["indegree"].append(G.in_degree(nid) if G.has_node(nid) else 0)
-                data["degree"].append(G.degree(nid) if G.has_node(nid) else 0)
+                if any(item not in node for item in ['freshness_score','POPULARITY_1_YEAR','SPEED']):
+                    print(node)
+                    continue
+                else:
+                    data["id"].append(nid)
+                    # replace dict freshness with freshness_score
+                    data["freshness"].append(node["freshness_score"])
+                    data["popularity"].append(node["POPULARITY_1_YEAR"])
+                    data["speed"].append(node["SPEED"])
+                    severity_value = self._get_sum_severity(nid)
+                    data["severity"].append(severity_value)
+                    data["indegree"].append(G.in_degree(nid) if G.has_node(nid) else 0)
+                    data["degree"].append(G.degree(nid) if G.has_node(nid) else 0)
 
         self.node_attr_df = pd.DataFrame(data)
    
@@ -506,40 +506,6 @@ class EigenCent:
         return top_cents
 
 
-    # def cal_weighted_eigen_cent(self, max_iterations=100, tolerance=1e-6):
-    #     ''' the attributes of original nodes have been quantified into numeric features as weight
-        
-    #     '''
-    #     # Extract weights only for nodes with severity > 0
-    #     weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
-
-    #     # Initialize centrality only for nodes in `self.graph`
-    #     centrality = {node: 1.0 for node in self.graph.keys()}
-
-    #     # update centrailities as per iteration
-    #     for _ in range(max_iterations):
-    #         new_centrality = {node: 0.0 for node in self.graph.keys()}
-
-    #         for node in self.graph:
-    #             for neighbor in self.graph[node]:
-    #                 new_centrality[node] += centrality[neighbor] * weights.get(neighbor, 0)
-        
-    #         # normalize the centralities
-    #         norm = sum(new_centrality.values())    
-    #         if norm == 0:
-    #             break
-    #         new_centrality = {node: val / norm for node, val in new_centrality.items()}
-            
-    #         # check for convergence
-    #         if all(abs(new_centrality[node] - centrality[node]) < tolerance for node in self.nodes.keys()):
-    #             break
-        
-    #         centrality = new_centrality
-    #     # Sort the centralities and get the top 10
-    #     top_cents = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:10]
-    
-    #     return top_cents
-    
 
 if __name__ == "__main__":
     # Example nodes with detailed attributes

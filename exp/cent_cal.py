@@ -70,84 +70,71 @@ def match_top_nodes_to_ids(top_nodes, nodes):
 
 if __name__ == "__main__":
 
-    dep_graph_path = Path.cwd().parent.joinpath("data", "dep_graph.pkl")
-    with dep_graph_path.open('rb') as fr:
-        G = pickle.load(fr)
+    # dep_graph_path = Path.cwd().parent.joinpath("data", "dep_graph.pkl")
+    # with dep_graph_path.open('rb') as fr:
+    #     G = pickle.load(fr)
     
 
-    # graph_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
+    graph_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
 
-    # if  graph_path.exists():
-    #     logger.info("Loading nodes and edges from saved file.")
-    #     nodes, edges = load_data(graph_path)
-    # else:
-    #     file_path = Path.cwd().parent.joinpath("data", "graph_metric.graphml").as_posix()
-    #     logger.info("Parsing nodes and edges from GraphML.")
-    #     # generate nodes and edges from graphml
-    #     now = datetime.now()
-    #     nodes, edges = parse_graphml_in_chunks(file_path)
-    #     logger.info(f"Time spent for node loading from graphml is: {datetime.now() - now}")
+    if  graph_path.exists():
+        logger.info("Loading nodes and edges from saved file.")
+        nodes, edges = load_data(graph_path)
+    else:
+        file_path = Path.cwd().parent.joinpath("data", "graph_metric.graphml").as_posix()
+        logger.info("Parsing nodes and edges from GraphML.")
+        # generate nodes and edges from graphml
+        now = datetime.now()
+        nodes, edges = parse_graphml_in_chunks(file_path)
+        logger.info(f"Time spent for node loading from graphml is: {datetime.now() - now}")
     #     save_data(nodes, edges, graph_path)
 
     # ------ calculate the degree_centrality ------
     # top_degree_cel = degree_cent.cal_degree_centrality(nodes, edges)
-    top_degree_cel = degree_cent.cal_degree_cent_releases(G)
-    logger.info(f"the top 10 nodes with highest degree centrality are: {top_degree_cel}")
-    logger.info(f"the top 10 node ids with highest degree centrality are: {match_top_nodes_to_ids(top_degree_cel, nodes)}")
+    # addvalue_edges_dict = degree_cent.get_addvalue_edges(edges)
+    # top_degree_cel = degree_cent.cal_degree_software_with_cve(nodes, edges, addvalue_edges_dict)
+    # logger.info(f"the top 10 nodes with highest degree centrality are: {top_degree_cel}")
+    # logger.info(f"the top 10 node ids with highest degree centrality are: {match_top_nodes_to_ids(top_degree_cel, nodes)}")
 
+    # top_degree_cel = degree_cent.cal_degree_release_with_cve(nodes, edges, addvalue_edges_dict)
+    # logger.info(f"the top 10 nodes with highest degree centrality are: {top_degree_cel}")
+    # logger.info(f"the top 10 node ids with highest degree centrality are: {match_top_nodes_to_ids(top_degree_cel, nodes)}")
     # # ------ calculate the between_centrailty --------
     # print("the length of nodes is:", len(list(nodes.keys())))
     # print("the length of edges is:", len(edges))
     
     # betcenter = between_cent.BetCent(nodes, edges)
-    
-    # top_between_cel = betcenter.cal_between_cent()
-    # logger.info("The result with min_severity_threshold is:")
-    # logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
-    # logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
-
-    # for prop in [0.1 *i for i in range(1,10)]:
-    #     top_between_cel = betcenter.cal_between_cent_nx(proportion_without_severity = prop)
-    #     results[prop] = top_between_cel
+    # betcenter.get_addvalue_edges()
+    # top_between_cel = betcenter.cal_between_cent_nx()
     # logger.info("The result with min_severity_threshold is:")
     # logger.info(f"the top 10 nodes with highest betweenness centrality are: {top_between_cel}")
     # logger.info(f"the top 10 node ids with highest betweenness centrality are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
 
 
-    # results = {}
-    
-    # for prop in [0.1 *i for i in range(1,10)]:
-    #     top_between_cel = betcenter.cal_between_cent(prop)
-    #     results[prop] = top_between_cel
-    
-    # Print results
-    # for prop, top_10 in results.items():
-    #     logger.info(f"Proportion: {prop:.1f} | Top 10 Nodes: {top_10}")  
-        
-    # for prop, top_between_cel in results.items():
-    #     logger.info(f"the top 10 node ids with highest betweenness centrality when the prop is {prop} are: {match_top_nodes_to_ids(top_between_cel, nodes)}")
 
     # ------ calculate the eigenvector centrality ------
 
-    # sever_score_map = {
-    # "CRITICAL": 4,
-    # "HIGH":3, 
-    # "MODERATE":2,
-    # "LOW":1
-    # }
-    # att_features = ["freshness", "popularity", "speed", "severity"]
+    sever_score_map = {
+    "CRITICAL": 4,
+    "HIGH":3, 
+    "MODERATE":2,
+    "LOW":1
+    }
+    att_features = ["freshness", "popularity", "speed", "severity"]
 
-    # eigencenter = eigen_cent.EigenCent(nodes, edges, att_features, sever_score_map)
-    # # process node attribute values to right format
-    # eigencenter._quan_attrs()
-    # eigencenter._covt_df()
+    eigencenter = eigen_cent.EigenCent(nodes, edges, att_features, sever_score_map)
+    # generate addvalues nodes
+    # process node attribute values to right format
+    eigencenter._quan_attrs()
+    eigencenter._covt_df()
     
-    # eigencenter._step_wise_reg(0.05, att_features)
-    # # analyse processed attributes
+    eigencenter._step_wise_reg(0.05, att_features)
+    # analyse processed attributes
     # eigencenter._weight_ana()
+    eigencenter.ave_weight()
 
-    # # get the eigen centrality
-    # top_eigen_nodes = eigencenter.cal_weighted_eigen_cent_nx()
-    # logger.info(f"the top 10 nodes with highest eigen centrality are: {top_eigen_nodes}")
-    # logger.info(f"the top 10 node ids with highest eigen centrality are: {match_top_nodes_to_ids(top_eigen_nodes, nodes)}")
+    # get the eigen centrality
+    top_eigen_nodes = eigencenter.cal_weighted_eigen_cent_nx()
+    logger.info(f"the top 10 nodes with highest eigen centrality are: {top_eigen_nodes}")
+    logger.info(f"the top 10 node ids with highest eigen centrality are: {match_top_nodes_to_ids(top_eigen_nodes, nodes)}")
 
