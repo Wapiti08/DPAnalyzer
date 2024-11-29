@@ -318,10 +318,9 @@ class CauDiscover:
         '''
         # consider nodes with CVEs
         nodes_with_attrs = self.nodes_with_attrs()
-        cve_data = data_df.drop(columns = ["source", "target"])
-        cve_data_sparse = csr_matrix(cve_data.values)
+        cve_data = data_df.drop(columns = ["source", "target", 'timestamp'])
         # apply the PC algorithm    
-        pc = PC(cve_data.compute())  # Use .compute() to get the actual data in memory for PC
+        pc = PC(cve_data.compute())  
         skeleton = pc.estimate(significance_level=sign_level,return_type="skeleton")
 
         # add edges that passed independence tests to a new graph
@@ -377,20 +376,6 @@ class CauDiscover:
     
         return shortest_paths, longest_chain
 
-    def _get_sum_severity(self, node):
-        ''' convert severity string to numeric value and sum all severities
-        
-        return sum_cve_score, cve_nums
-        '''
-        if self.cve_check(node):
-            cve_list = self.str_to_json(node["value"])['cve']
-        else:
-            return 0, 0
-        cve_seve_str_list = [cve["severity"] for cve in cve_list]
-        cve_score_list = [self.severity_map.get(cve_str,0) for cve_str in cve_seve_str_list]
-        sum_seve_score = sum(cve_score_list)
-        return sum_seve_score, len(cve_score_list)
-
 def load_data(file_path):
     with file_path.open('rb') as f:
         data = pickle.load(f)
@@ -440,7 +425,7 @@ if __name__ == "__main__":
     # }
 
 
-    # # Example edges
+    # Example edges
     # edges = [
     #     ("n1", "n2", {"label": "relationship_AR"}),
     #     ("n1", "n12", {"label": "relationship_AR"}),
@@ -477,12 +462,12 @@ if __name__ == "__main__":
 
     cve_siblings_data_path = Path.cwd().parent.joinpath("data", 'cve_2_siblings_data.csv')
 
-    # if cve_siblings_data_path.exists():
-    #     df = dd.read_csv(cve_siblings_data_path.as_posix())
-    # else:
-    #     # prepare input from nodes and edges
-    #     df = caudiscover._data_create_two_hop()
-    #     df.compute().to_csv(cve_siblings_data_path.as_posix(),index=False)
+    if cve_siblings_data_path.exists():
+        sib_df = dd.read_csv(cve_siblings_data_path.as_posix())
+    else:
+        # prepare input from nodes and edges
+        sib_df = caudiscover._data_create_two_hop()
+        sib_df.compute().to_csv(cve_siblings_data_path.as_posix(),index=False)
 
     
     # extrat the features part out of node
@@ -492,6 +477,10 @@ if __name__ == "__main__":
     ## compute causal chain
     shortest_paths, longest_chain = caudiscover.causal_chain_length(pruned_G)
 
+
+    pruned_G = caudiscover.das_dis_cve(sib_df)
+    shortest_paths, longest_chain = caudiscover.causal_chain_length(pruned_G)
+    
     # ----------- feature analysis ------------ 
 
     # compute cve metrics

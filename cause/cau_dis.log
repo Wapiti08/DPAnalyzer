@@ -45,3 +45,6 @@ INFO:__main__:The causal score computed from connections is: -4200755.9472946385
 2024-11-27 21:12:35,014 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
 2024-11-27 21:12:35,014 - __main__ - INFO - The longest length of causal chain is: 1
 2024-11-27 21:12:35,014 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']
+2024-11-29 14:35:20,518 - __main__ - INFO - BIC score of pruned graph: -43.32144326725634
+2024-11-29 14:35:20,519 - __main__ - INFO - The longest length of causal chain is: 1
+2024-11-29 14:35:20,519 - __main__ - INFO - The longest chain is: ['source_cve_exists', 'source_cve_score']

@@ -1,7 +1,18 @@
 # DPAnalyzer
 dependency propagation analyser on graphs
 
-## Features
+## Structure
+
+- cause: causality analysis part, implementation of custom DAS, the code to generate two files with CVE related features (one-hop neighbor, two-hop neighbor)
+
+- cent: three centrality measurement methods: degree (three directions), 
+
+- data
+
+- exp
+
+- process
+
 
 
 
@@ -21,15 +32,12 @@ apoc.export.file.enabled=true
 
 - run script:
 ```
+# export dump into graphml and csv formats
 python3 data_export.py
 ```
 
-## Running Instructions
+## Running Instructions (tested on macOS and Ubuntu 20.04.5 LTS for small-scale data)
 
-- macOS
-
-
-- Ubuntu 20.04.5 LTS
 ```
 # configure virtualenv environment
 curl https://pyenv.run | bash
@@ -47,4 +55,24 @@ pyenv virtualenv 3.10 DPAnalyzer
 eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
 pyenv activate DPAnalyzer
+
+# download dependencies
+pip3 install -r requirmentst.txt
+
+# centrality measurement --- comment different parts to run different measurements
+python3 cent_cal.py
+
+# causality analysis
+python3 cau_dis.py
+
 ```
+
+
+## Statistical Analysis (extra material)
+
+- ![Distributed of Number of Packages per CVE (Top 100)](imgs/number_of_packages.png)
+
+
+- ![Releases by number of CVEs (Top 6)](releases_by_num_cve)
+
+- 

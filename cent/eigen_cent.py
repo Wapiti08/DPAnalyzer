@@ -264,7 +264,7 @@ class EigenCent:
             "popularity": [],
             "speed": [],
             "severity": [],
-            "indegree": [],
+            "outdegree": [],
             "degree": []
         }
 
@@ -289,7 +289,7 @@ class EigenCent:
                     data["speed"].append(node["SPEED"])
                     severity_value = self._get_sum_severity(nid)
                     data["severity"].append(severity_value)
-                    data["indegree"].append(G.in_degree(nid) if G.has_node(nid) else 0)
+                    data["outdegree"].append(G.out_degree(nid) if G.has_node(nid) else 0)
                     data["degree"].append(G.degree(nid) if G.has_node(nid) else 0)
 
         self.node_attr_df = pd.DataFrame(data)
@@ -302,10 +302,10 @@ class EigenCent:
         '''
         attributes = ["freshness", "popularity", "speed", "severity"]
         X = self.node_attr_df[attributes]
-        y = self.node_attr_df["indegree"]
+        y = self.node_attr_df["outdegree"]
         # y = self.node_attr_df["degree"]
 
-        return self.node_attr_df[attributes + ["indegree"]].corr()
+        return self.node_attr_df[attributes + ["outdegree"]].corr()
         # return self.node_attr_df[attributes + ["degree"]].corr()
     
 
@@ -314,7 +314,7 @@ class EigenCent:
         
         '''
         init_features = self.node_attr_df[sele_features].columns.tolist()
-        y = self.node_attr_df["indegree"].values
+        y = self.node_attr_df["outdegree"].values
         # y = self.node_attr_df["degree"].values
         
         best_features = []
@@ -369,12 +369,12 @@ class EigenCent:
         # return self.node_attr_df[attributes + ["degree"]].corr()
         # Attributes and target
         attributes = ["freshness", "popularity", "speed", "severity"]
-        y = self.node_attr_df["indegree"]
+        y = self.node_attr_df["outdegree"]
         X = self.node_attr_df[attributes]
 
         # Step 1: Calculate correlations with the target
         corr_values = X.corrwith(y).abs()  # Use absolute correlation values
-        logger.info(f"Correlation values with 'indegree': {corr_values.to_dict()}")
+        logger.info(f"Correlation values with 'outdegree': {corr_values.to_dict()}")
 
         # Step 2: Normalize correlation values to get weights
         total_corr = corr_values.sum()
@@ -407,19 +407,15 @@ class EigenCent:
         # perform correlation analysis for all features
         corr_results = self._corr_ana()
         logger.info(f"the correlation table is: {corr_results}")
-        sign_attrs = corr_results["indegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
-        # sign_attrs = corr_results["degree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
-        # sign_attrs.remove("indegree")
-        # if "degree" in sign_attrs:
-        #     sign_attrs.remove("degree")
+        sign_attrs = corr_results["outdegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
 
-        if "indegree" in sign_attrs:
-            sign_attrs.remove("indegree")
+        if "outdegree" in sign_attrs:
+            sign_attrs.remove("outdegree")
     
         logger.info(f"Left important features after correlation analyis are: {sign_attrs}")
 
         # run step-wise regression using all features at once
-        df = self.node_attr_df[sign_attrs + ["indegree"]]
+        df = self.node_attr_df[sign_attrs + ["outdegree"]]
         # create a new separate framework
         # df = self.node_attr_df[sign_attrs + ["degree"]]
         sele_features = self._step_wise_reg(reg_thres, sign_attrs)
@@ -433,7 +429,7 @@ class EigenCent:
         for feature in sele_features:
             X_single = df[feature]
             X_single = sm.add_constant(X_single)
-            model = sm.OLS(self.node_attr_df["indegree"], X_single).fit()
+            model = sm.OLS(self.node_attr_df["outdegree"], X_single).fit()
             # model = sm.OLS(df["degree"], X_single).fit()
             contribution = model.rsquared
             contribution_scores[feature] = contribution
@@ -471,7 +467,8 @@ class EigenCent:
                     G.add_edge(source, target)
                 
         # set weights as attributes for nodes in self.graph
-        weights = self.node_attr_df.set_index("id")["weight"].to_dict()
+        # weights = self.node_attr_df.set_index("id")["weight"].to_dict()
+        weights = self.node_attr_df.set_index('id')["severity"].to_dict()
 
         for nid in G.nodes:
             G.nodes[nid]['weight'] = weights.get(nid, 1)
@@ -481,18 +478,6 @@ class EigenCent:
             source_weight = G.nodes[u].get('weight', 1)
             target_weight = G.nodes[v].get('weight', 1)
             G[u][v]['weight'] = source_weight * target_weight
-
-
-        # G = nx.DiGraph()
-        # # Add nodes with custom weights as attributes
-        # for nid, node in self.nodes.items():
-        #     weights = {nid: w for nid, w in self.node_attr_df.set_index("id")["weight"].to_dict().items() if nid in self.graph}
-        #     G.add_node(nid, weight=weights)
-
-        # # Add edges for incoming relationships (directed)
-        # for source, target, _ in self.edges:
-        #     if target in self.nodes and source in self.nodes:
-        #         G.add_edge(source, target)
 
             # Calculate eigenvector centrality with the modified edge weights
         try:
@@ -575,13 +560,12 @@ if __name__ == "__main__":
 
     eigencenter = EigenCent(nodes, edges, att_features, sever_score_map)
     # process node attribute values to right format
-    eigencenter._quan_attrs()
+    # eigencenter._quan_attrs()
     eigencenter._covt_df()
     
     # eigencenter._step_wise_reg(0.05, att_features)
     # analyse processed attributes
-    # eigencenter._weight_ana()
-    eigencenter.ave_weight()
+    # eigencenter.ave_weight()
 
     # get the eigen centrality
     # print(eigencenter.cal_weighted_eigen_cent())
