@@ -5,15 +5,13 @@ dependency propagation analyser on graphs
 
 - cause: causality analysis part, implementation of custom DAS, the code to generate two files with CVE related features (one-hop neighbor, two-hop neighbor)
 
-- cent: three centrality measurement methods: degree (three directions), 
+- cent: three centrality measurement methods: degree (three directions), betweenness, and eigenvector
 
-- data
+- data: extracted other format data sets
 
-- exp
+- exp: the exploration code on different files, code to call diverse centrality measurement
 
-- process
-
-
+- process: the code to call neo4j and export other formats of graphs, like graphml and csv
 
 
 ## Instructions
@@ -36,7 +34,8 @@ apoc.export.file.enabled=true
 python3 data_export.py
 ```
 
-## Running Instructions (tested on macOS and Ubuntu 20.04.5 LTS for small-scale data)
+## Running Instructions 
+(tested on macOS and Ubuntu 20.04.5 LTS for small-scale data)
 
 ```
 # configure virtualenv environment
@@ -73,6 +72,6 @@ python3 cau_dis.py
 - ![Distributed of Number of Packages per CVE (Top 100)](imgs/number_of_packages.png)
 
 
-- ![Releases by number of CVEs (Top 6)](releases_by_num_cve)
+- ![Releases by number of CVEs (Top 6)](imgs/releases_by_num_cve.png)
 
 - 
