@@ -78,7 +78,7 @@ class CauDiscover:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+            if node['type'] == "POPULARITY_1_YEAR":
                 return True
             else:
                 return False
@@ -88,7 +88,7 @@ class CauDiscover:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+            if node['type'] == "SPEED":
                 return True
             else:
                 return False
@@ -98,7 +98,7 @@ class CauDiscover:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+            if node['type'] == "FRESHNESS":
                 return True
             else:
                 return False
@@ -108,14 +108,13 @@ class CauDiscover:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
+            if node['type'] == "CVE":
                 return True
             else:
                 return False
 
     def get_cve_nodes(self, ):
         return [node_id for node_id, node in self.nodes.items() if self.cve_check(node_id)]
-
 
     def nodes_with_attrs_check(self, node: str):
         if self.cve_check(node) or self.fresh_check(node) or self.popu_check(node) or \
@@ -376,6 +375,46 @@ class CauDiscover:
     
         return shortest_paths, longest_chain
 
+
+    def unique_causal_paths(self, caugraph):
+        '''
+        Compute all unique causal paths within the causal graph and their counts.
+        
+        Args:
+            caugraph: A NetworkX directed graph representing the causal graph.
+        
+        Returns:
+            unique_paths_counts: A dictionary where keys are unique paths (as tuples of nodes) 
+                                and values are the counts of these paths.
+        '''
+        from collections import defaultdict
+        
+        # Dictionary to store unique paths and their counts
+        path_counts = defaultdict(int)
+        
+        # Iterate through all pairs of nodes in the graph
+        for source in caugraph.nodes:
+            for target in caugraph.nodes:
+                if source != target:
+                    # Find all simple paths from source to target
+                    paths = list(nx.all_simple_paths(caugraph, source=source, target=target))
+                    
+                    # Convert each path to a tuple (hashable) and update its count
+                    for path in paths:
+                        path_tuple = tuple(path)
+                        path_counts[path_tuple] += 1
+        
+        # Convert to a regular dictionary for cleaner output
+        unique_paths_counts = dict(path_counts)
+        print(unique_paths_counts)
+        # Log results
+        logger.info(f"Number of unique causal paths: {len(unique_paths_counts)}")
+        for path, count in unique_paths_counts.items():
+            logger.debug(f"Path: {path}, Count: {count}")
+        
+        return unique_paths_counts
+
+
 def load_data(file_path):
     with file_path.open('rb') as f:
         data = pickle.load(f)
@@ -383,70 +422,68 @@ def load_data(file_path):
 
 if __name__ == "__main__":
     
-    file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
+    # file_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
 
-    # read nodes and edges
-    nodes, edges = load_data(file_path)
+    # # read nodes and edges
+    # nodes, edges = load_data(file_path)
 
-    # Example nodes with detailed attributes
-    # nodes = {
-    # "n1":  {'labels': ':AddedValue', 
-    #         'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-    #         },
-    # "n2": {'labels': ':AddedValue', 
-    #        'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-    #        },
-    # "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-    #        },
-    # "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    # "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    # "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    # "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    # "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    # "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
-    # "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
-    # "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
-    # "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
-    # "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
-    # "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
-    # "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
-    # "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
-    # 'n16': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.111', 'version': '5.20.111', 'timestamp': '1626148242000'},
-    # 'n17': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M4', 'version': '1.0.0-M4', 'timestamp': '1583239943000'},
-    # 'n18': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M3', 'version': '1.0.0-M3', 'timestamp': '1579861029000'},
-    # 'n19': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.113', 'version': '5.20.113', 'timestamp': '1626179580000'},
-    # 'n20': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.112', 'version': '5.20.112', 'timestamp': '1626170945000'},
-    # 'n21': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.115', 'version': '5.20.115', 'timestamp': '1626340086000'},
-    # 'n22': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M2', 'version': '1.0.0-M2', 'timestamp': '1576600059000'},
-    # 'n23': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M6', 'version': '1.0.0-M6', 'timestamp': '1586476381000'},
-    # 'n24': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.114', 'version': '5.20.114', 'timestamp': '1626266264000'},
-    # 'n25': {'labels': ':Release', 'version': '0.5.0', 'timestamp': '1669329622000', 'id': 'com.splendo.kaluga:alerts-androidlib:0.5.0'},
+    nodes = {
+    "n1":  {'labels': ':AddedValue', 
+            'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+            },
+    "n2": {'labels': ':AddedValue', 
+           'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
+           },
+    "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
+    "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
+    "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
+    "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
+    "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
+    "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
+    "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
+    "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
+    "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
+    "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
+    'n16': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.111', 'version': '5.20.111', 'timestamp': '1626148242000'},
+    'n17': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M4', 'version': '1.0.0-M4', 'timestamp': '1583239943000'},
+    'n18': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M3', 'version': '1.0.0-M3', 'timestamp': '1579861029000'},
+    'n19': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.113', 'version': '5.20.113', 'timestamp': '1626179580000'},
+    'n20': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.112', 'version': '5.20.112', 'timestamp': '1626170945000'},
+    'n21': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.115', 'version': '5.20.115', 'timestamp': '1626340086000'},
+    'n22': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M2', 'version': '1.0.0-M2', 'timestamp': '1576600059000'},
+    'n23': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M6', 'version': '1.0.0-M6', 'timestamp': '1586476381000'},
+    'n24': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.114', 'version': '5.20.114', 'timestamp': '1626266264000'},
+    'n25': {'labels': ':Release', 'version': '0.5.0', 'timestamp': '1669329622000', 'id': 'com.splendo.kaluga:alerts-androidlib:0.5.0'},
 
-    # }
+    }
 
 
-    # Example edges
-    # edges = [
-    #     ("n1", "n2", {"label": "relationship_AR"}),
-    #     ("n1", "n12", {"label": "relationship_AR"}),
-    #     ("n5", "n3", {"label": "relationship_AR"}),
-    #     ("n1", "n6", {"label": "relationship_AR"}),
-    #     ("n7", "n3", {"label": "relationship_AR"}),
-    #     ("n1", "n11", {"label": "relationship_AR"}),
-    #     ("n8", "n3", {"label": "relationship_AR"}),
-    #     ("n4", "n7", {"label": "relationship_AR"}),
-    #     ("n10", "n12", {"label": "relationship_AR"}),
-    #     ("n5", "n13", {"label": "relationship_AR"}),
-    #     ("n4", "n14", {"label": "relationship_AR"}),
-    #     ("n13", "n0", {"label": "relationship_AR"}),
-    #     ("n10", "n15", {"label": "relationship_AR"}),
-    #     ("n1", "n16", {"label": "relationship_AR"}),
-    #     ("n19", "n25", {"label": "relationship_AR"}),
-    #     ("n5", "n21", {"label": "relationship_AR"}),
-    #     ("n21", "n23", {"label": "relationship_AR"}),
-    #     ("n19", "n24", {"label": "relationship_AR"}),
-    #     ("n4", "n19", {"label": "relationship_AR"}),
-    # ]
+    edges = [
+        ("n1", "n2", {"label": "relationship_AR"}),
+        ("n1", "n12", {"label": "relationship_AR"}),
+        ("n5", "n3", {"label": "relationship_AR"}),
+        ("n1", "n6", {"label": "relationship_AR"}),
+        ("n7", "n3", {"label": "relationship_AR"}),
+        ("n1", "n11", {"label": "relationship_AR"}),
+        ("n8", "n3", {"label": "relationship_AR"}),
+        ("n4", "n7", {"label": "relationship_AR"}),
+        ("n10", "n12", {"label": "relationship_AR"}),
+        ("n5", "n13", {"label": "relationship_AR"}),
+        ("n4", "n14", {"label": "relationship_AR"}),
+        ("n13", "n0", {"label": "relationship_AR"}),
+        ("n10", "n15", {"label": "relationship_AR"}),
+        ("n1", "n16", {"label": "relationship_AR"}),
+        ("n19", "n25", {"label": "relationship_AR"}),
+        ("n5", "n21", {"label": "relationship_AR"}),
+        ("n21", "n23", {"label": "relationship_AR"}),
+        ("n19", "n24", {"label": "relationship_AR"}),
+        ("n4", "n19", {"label": "relationship_AR"}),
+    ]
     
 
     caudiscover = CauDiscover(nodes, edges, sever_score_map)
@@ -460,6 +497,16 @@ if __name__ == "__main__":
         df = caudiscover._data_create()
         df.compute().to_csv(cve_data_path.as_posix(),index=False)
 
+    
+    # extrat the features part out of node
+    # ------ discover at scale process ---------
+    pruned_G = caudiscover.das_dis_cve(df)
+
+    ## compute causal chain
+    # shortest_paths, longest_chain = caudiscover.causal_chain_length(pruned_G)
+    unique_paths_counts = caudiscover.unique_causal_paths(pruned_G)
+
+    
     cve_siblings_data_path = Path.cwd().parent.joinpath("data", 'cve_2_siblings_data.csv')
 
     if cve_siblings_data_path.exists():
@@ -468,18 +515,10 @@ if __name__ == "__main__":
         # prepare input from nodes and edges
         sib_df = caudiscover._data_create_two_hop()
         sib_df.compute().to_csv(cve_siblings_data_path.as_posix(),index=False)
-
-    
-    # extrat the features part out of node
-    # ------ discover at scale process ---------
-    pruned_G = caudiscover.das_dis_cve(df)
-
-    ## compute causal chain
-    shortest_paths, longest_chain = caudiscover.causal_chain_length(pruned_G)
-
+            
 
     pruned_G = caudiscover.das_dis_cve(sib_df)
-    shortest_paths, longest_chain = caudiscover.causal_chain_length(pruned_G)
+    unique_paths_counts = caudiscover.unique_causal_paths(pruned_G)
     
     # ----------- feature analysis ------------ 
 

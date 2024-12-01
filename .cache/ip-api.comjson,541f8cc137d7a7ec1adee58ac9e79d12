@@ -1,0 +1,10 @@
+status: 200
+date: Sat, 30 Nov 2024 10:59:30 GMT
+content-type: application/json; charset=utf-8
+content-length: 286
+access-control-allow-origin: *
+x-ttl: 53
+x-rl: 43
+content-location: http://ip-api.com/json/
+
+{"status":"success","country":"United Kingdom","countryCode":"GB","region":"SCT","regionName":"Scotland","city":"Glasgow","zip":"G12","lat":55.8803,"lon":-4.3055,"timezone":"Europe/London","isp":"Glasgow University","org":"","as":"AS786 Jisc Services Limited","query":"130.209.151.231"}

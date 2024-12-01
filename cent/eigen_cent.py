@@ -21,7 +21,8 @@ import logging
 import numpy as np
 import json
 from collections import defaultdict
-
+from pathlib import Path
+import pickle
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s]: %(message)s',
@@ -55,13 +56,10 @@ class EigenCent:
         self.get_addvalue_edges()
         # consider nodes with all attributes
         self.graph = {node: [] for node, attrs in nodes.items() if self.cve_check(node) or \
-                      self.fresh_check(node) or self.popu_check(node) or self.speed_check(node) or
-                      self.get_timestamp(node)}
+                      self.fresh_check(node) or self.popu_check(node) or self.speed_check(node)}
 
         for source, target, _ in edges:
-            # consider both incoming and outcoming edges for eigenvector
             if target in self.graph and source in self.graph:
-                # self.graph[target].append(source)
                 self.graph[source].append(target)
     
     def get_timestamp(self, target:str):
@@ -93,7 +91,7 @@ class EigenCent:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if 'type' in node and node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
+            if node['type'] == "POPULARITY_1_YEAR":
                 return True
             else:
                 return False
@@ -103,7 +101,7 @@ class EigenCent:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
+            if node['type'] == "SPEED":
                 return True
             else:
                 return False
@@ -113,7 +111,7 @@ class EigenCent:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if 'type' in node and node['type'] == "FRESHNESS" and self.str_to_json(node["value"])['freshness'] !={}:
+            if node['type'] == "FRESHNESS":
                 return True
             else:
                 return False
@@ -123,7 +121,7 @@ class EigenCent:
         node_list = self.addvalue_dict[target]
         for node_id in node_list:
             node = self.nodes[node_id]
-            if node['type'] == "CVE" and self.str_to_json(node["value"])['cve'] !=[]:
+            if node['type'] == "CVE":
                 return True
             else:
                 return False
@@ -167,55 +165,30 @@ class EigenCent:
                 node_list = self.addvalue_dict[id]
                 for node_id in node_list:
                     node = self.nodes[node_id]
-                    value_dict = self.str_to_json(node["value"])
-                    if node['type'] == "FRESHNESS" and value_dict != {}:
+                    if node['type'] == "FRESHNESS":
+                        value_dict = self.str_to_json(node["value"])
                         numberMissedRelease = int(value_dict["freshness"]["numberMissedRelease"])
-                        outdatedTimeInMs = int(value_dict["freshness"]["outdatedTimeInMs"])
+                        outdatedTimeInMs = int(value_dict["freshness"]["outdatedTimeInMs"]) / (1000 * 60 * 60 * 24)  # Convert to days
             else:
                 numberMissedRelease = 0
                 outdatedTimeInMs = 0
-            
-            # add to processed data --- in order to implemented dataframe-orient manipulation
+
+            # Add to processed data for DataFrame manipulation
             processed_data.append(
                 {
-                    # "id": node['id'],
-                    'numberMissedRelease': numberMissedRelease,
-                    "outdatedTimeInMs": outdatedTimeInMs
+                    "numberMissedRelease": numberMissedRelease,
+                    "outdatedTimeDays": outdatedTimeInMs  # Renamed to indicate the unit
                 }
             )
+
         # create a dataframe
         df = pd.DataFrame(processed_data)
 
-        # Mark rows where both values are zero for setting freshness_score to 0 later
-        df['is_zero_freshness'] = (df['numberMissedRelease'] == 0) & (df['outdatedTimeInMs'] == 0)
-
-        # Apply min-max normalization only for non-zero rows
-        df["Normalized_Missed"] = df.loc[~df['is_zero_freshness'], 'numberMissedRelease']
-        df["Normalized_Outdated"] = df.loc[~df['is_zero_freshness'], 'outdatedTimeInMs']
-
-        # Min-max normalization for non-zero freshness entries
-        df.loc[~df['is_zero_freshness'], "Normalized_Missed"] = (
-            (df['numberMissedRelease'] - df['numberMissedRelease'].min()) / 
-            (df['numberMissedRelease'].max() - df['numberMissedRelease'].min())
-        )
-
-        df.loc[~df['is_zero_freshness'], "Normalized_Outdated"] = (
-            (df['outdatedTimeInMs'] - df['outdatedTimeInMs'].min()) / 
-            (df['outdatedTimeInMs'].max() - df['outdatedTimeInMs'].min())
-        )
-
-        # Define weights for freshness calculation
-        w1, w2 = 0.5, 0.5
-
-        # Calculate freshness score for non-zero freshness entries
-        df['freshness_score'] = 0  # Initialize all scores to 0
-        df.loc[~df['is_zero_freshness'], 'freshness_score'] = (
-            w1 * df['Normalized_Missed'] + w2 * df['Normalized_Outdated']
-        )
-
         # Map the freshness scores back to the original nodes
-        for i, node in enumerate(self.nodes.values()):
-            node["freshness_score"] = df.loc[i, 'freshness_score']
+        for i, (node_id, _) in enumerate(self.nodes.items()):
+            self.nodes[node_id]["freshness_missrelease"] = df.loc[i, 'numberMissedRelease']
+            self.nodes[node_id]["freshness_outdays"] = df.loc[i, 'outdatedTimeDays']
+
 
     def _popu_proc(self,):
         ''' process potential missing popularity
@@ -226,10 +199,10 @@ class EigenCent:
                 node_list = self.addvalue_dict[id]
                 for node_id in node_list:
                     node = self.nodes[node_id]
-                    if node['type'] == "POPULARITY_1_YEAR" and node["value"] !='0':
-                        node["POPULARITY_1_YEAR"] = int(node["value"])
+                    if node['type'] == "POPULARITY_1_YEAR":
+                        self.nodes[id]["POPULARITY_1_YEAR"] = int(node["value"])
             else:
-                node["POPULARITY_1_YEAR"] = 0
+                self.nodes[id]["POPULARITY_1_YEAR"] = 0
         
     def _speed_proc(self,):
         ''' process potential missing popularity
@@ -240,10 +213,10 @@ class EigenCent:
                 node_list = self.addvalue_dict[id]
                 for node_id in node_list:
                     node = self.nodes[node_id]
-                    if 'type' in node and node['type'] == "SPEED" and node["value"] !='0':
-                        node["SPEED"] = float(node["value"])
+                    if node['type'] == "SPEED":
+                        self.nodes[id]["SPEED"] = float(node["value"])
             else:
-                node["SPEED"] = 0
+                self.nodes[id]["SPEED"] = 0
     
     def _quan_attrs(self,):
         ''' initialize quantify attributes of nodes
@@ -253,54 +226,58 @@ class EigenCent:
         self._speed_proc()
         self._popu_proc()
 
-    def _covt_df(self,):
+    def _covt_df(self, fea_matrix_path: Path):
         ''' covert nodes to node based dataframe
         
         '''
-        # create a dict to save iterative values 
-        data = {
-            "id": [],
-            "freshness": [],
-            "popularity": [],
-            "speed": [],
-            "severity": [],
-            "outdegree": [],
-            "degree": []
-        }
+        if fea_matrix_path.exists():
+            self.node_attr_df = pd.read_csv(fea_matrix_path)
+            
+        else:
+            # create a dict to save iterative values 
+            data = {
+                "id": [],
+                "freshness_missrelease": [],
+                "freshness_outdays": [],
+                "popularity": [],
+                "speed": [],
+                "severity": [],
+                "outdegree": [],
+                "degree": []
+            }
 
-        # create a direct graph
-        G = nx.DiGraph()
+            # create a direct graph
+            G = nx.DiGraph()
 
-        # Add edges based on your self.graph structure
-        for node, neighbors in self.graph.items():
-            for neighbor in neighbors:
-                G.add_edge(node, neighbor)
+            # Add edges based on your self.graph structure
+            for node, neighbors in self.graph.items():
+                for neighbor in neighbors:
+                    G.add_edge(node, neighbor)
 
-        for nid, node in self.nodes.items():
-            if nid in self.graph:
-                if any(item not in node for item in ['freshness_score','POPULARITY_1_YEAR','SPEED']):
-                    print(node)
-                    continue
-                else:
+            for nid, node in self.nodes.items():
+                if nid in self.graph:
                     data["id"].append(nid)
                     # replace dict freshness with freshness_score
-                    data["freshness"].append(node["freshness_score"])
-                    data["popularity"].append(node["POPULARITY_1_YEAR"])
-                    data["speed"].append(node["SPEED"])
+                    data["freshness_missrelease"].append(node.get("freshness_missrelease", 0))
+                    data["freshness_outdays"].append(node.get("freshness_outdays", 0))
+                    data["popularity"].append(node.get("POPULARITY_1_YEAR", 0))
+                    data["speed"].append(node.get("SPEED", 0))
                     severity_value = self._get_sum_severity(nid)
                     data["severity"].append(severity_value)
                     data["outdegree"].append(G.out_degree(nid) if G.has_node(nid) else 0)
                     data["degree"].append(G.degree(nid) if G.has_node(nid) else 0)
 
-        self.node_attr_df = pd.DataFrame(data)
-   
+            self.node_attr_df = pd.DataFrame(data)
+            print(self.node_attr_df.isnull().sum())
+            self.node_attr_df.to_csv(fea_matrix_path,index=False)
+
 
     def _corr_ana(self,):
         ''' using pandas to perform correlation analysis between severity, freshness, 
         popularity, speed with node degree
         
         '''
-        attributes = ["freshness", "popularity", "speed", "severity"]
+        attributes = ["freshness_missrelease", "freshness_outdays", "popularity", "speed", "severity"]
         X = self.node_attr_df[attributes]
         y = self.node_attr_df["outdegree"]
         # y = self.node_attr_df["degree"]
@@ -368,7 +345,7 @@ class EigenCent:
     def ave_weight(self, scaling_factor=2776187):
         # return self.node_attr_df[attributes + ["degree"]].corr()
         # Attributes and target
-        attributes = ["freshness", "popularity", "speed", "severity"]
+        attributes = ["freshness_missrelease", "freshness_outdays", "popularity", "speed", "severity"]
         y = self.node_attr_df["outdegree"]
         X = self.node_attr_df[attributes]
 
@@ -467,8 +444,8 @@ class EigenCent:
                     G.add_edge(source, target)
                 
         # set weights as attributes for nodes in self.graph
-        # weights = self.node_attr_df.set_index("id")["weight"].to_dict()
-        weights = self.node_attr_df.set_index('id')["severity"].to_dict()
+        weights = self.node_attr_df.set_index("id")["weight"].to_dict()
+        # weights = self.node_attr_df.set_index('id')["severity"].to_dict()
 
         for nid in G.nodes:
             G.nodes[nid]['weight'] = weights.get(nid, 1)
@@ -493,80 +470,27 @@ class EigenCent:
 
 
 if __name__ == "__main__":
-    # Example nodes with detailed attributes
-    # Example nodes with detailed attributes
-    nodes = {
-    "n1":  {'labels': ':AddedValue', 
-            'id': 'org.wso2.carbon.apimgt:forum:6.5.275:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-            },
-    "n2": {'labels': ':AddedValue', 
-           'id': 'org.wso2.carbon.apimgt:forum:6.5.276:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-           },
-    "n3": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.272:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'
-           },
-    "n4": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.279:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    "n5": {'labels': ':AddedValue', 'id': 'org.wso2.carbon.apimgt:forum:6.5.278:CVE', 'type': 'CVE', 'value': '{\\"cve\\":[{\\"cwe\\":\\"[CWE-20]\\",\\"severity\\":\\"MODERATE\\",\\"name\\":\\"CVE-2023-6835\\"}]}'},
-    "n6": {'labels': ':AddedValue', 'value': '1', 'id': 'io.gravitee.common:gravitee-common:3.1.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    "n7": {'labels': ':AddedValue', 'value': '2', 'id': 'org.thepalaceproject.audiobook:org.librarysimplified.audiobook.parser.api:11.0.0:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    "n8": {'labels': ':AddedValue', 'value': '1', 'id': 'com.emergetools.snapshots:snapshots-shared:0.8.1:POPULARITY_1_YEAR', 'type': 'POPULARITY_1_YEAR'},
-    "n9": {'labels': ':AddedValue', 'id': 'se.fortnox.reactivewizard:reactivewizard-jaxrs:SPEED', 'type': 'SPEED', 'value': '0.08070175438596491'},
-    "n10":{'labels': ':AddedValue', 'id': 'cc.akkaha:asura-dubbo_2.12:SPEED', 'type': 'SPEED', 'value': '0.029411764705882353'},
-    "n11":{'labels': ':AddedValue', 'id': 'it.tidalwave.thesefoolishthings:it-tidalwave-thesefoolishthings-examples-dci-swing:SPEED', 'type': 'SPEED', 'value': '0.014814814814814815'},
-    "n12":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.2:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"7\\",\\"outdatedTimeInMs\\":\\"3795765000\\"}}'},
-    "n13":{'labels': ':AddedValue', 'id': 'com.ibeetl:act-sample:3.0.0-M6:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"2\\",\\"outdatedTimeInMs\\":\\"11941344000\\"}}'},
-    "n14":{'labels': ':AddedValue', 'id': 'com.softwaremill.sttp.client:core_sjs0.6_2.13:2.0.0:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"9\\",\\"outdatedTimeInMs\\":\\"4685281000\\"}}'},
-    "n15":{'labels': ':AddedValue', 'id': 'com.lihaoyi:ammonite_2.12.1:0.9.8:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"367\\",\\"outdatedTimeInMs\\":\\"142773884000\\"}}'},
-    "n0":{'labels': ':AddedValue', 'id': 'com.yahoo.vespa:container-disc:7.394.21:FRESHNESS', 'type': 'FRESHNESS', 'value': '{\\"freshness\\":{\\"numberMissedRelease\\":\\"448\\",\\"outdatedTimeInMs\\":\\"105191360000\\"}}'},
-    'n16': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.111', 'version': '5.20.111', 'timestamp': '1626148242000'},
-    'n17': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M4', 'version': '1.0.0-M4', 'timestamp': '1583239943000'},
-    'n18': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M3', 'version': '1.0.0-M3', 'timestamp': '1579861029000'},
-    'n19': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.113', 'version': '5.20.113', 'timestamp': '1626179580000'},
-    'n20': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.112', 'version': '5.20.112', 'timestamp': '1626170945000'},
-    'n21': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.115', 'version': '5.20.115', 'timestamp': '1626340086000'},
-    'n22': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M2', 'version': '1.0.0-M2', 'timestamp': '1576600059000'},
-    'n23': {'labels': ':Release', 'id': 'org.apache.camel.quarkus:camel-quarkus-kotlin-parent:1.0.0-M6', 'version': '1.0.0-M6', 'timestamp': '1586476381000'},
-    'n24': {'labels': ':Release', 'id': 'org.wso2.carbon.identity.framework:org.wso2.carbon.identity.cors.mgt.core:5.20.114', 'version': '5.20.114', 'timestamp': '1626266264000'},
-    'n25': {'labels': ':Release', 'version': '0.5.0', 'timestamp': '1669329622000', 'id': 'com.splendo.kaluga:alerts-androidlib:0.5.0'},
 
-    }
+    graph_path = Path.cwd().parent.joinpath("data", 'graph_nodes_edges.pkl')
 
-
-    # Example edges
-    edges = [
-        ("n1", "n2", {"label": "relationship_AR"}),
-        ("n1", "n12", {"label": "relationship_AR"}),
-        ("n5", "n3", {"label": "relationship_AR"}),
-        ("n1", "n6", {"label": "relationship_AR"}),
-        ("n7", "n3", {"label": "relationship_AR"}),
-        ("n1", "n11", {"label": "relationship_AR"}),
-        ("n8", "n3", {"label": "relationship_AR"}),
-        ("n4", "n7", {"label": "dependency"}),
-        ("n10", "n12", {"label": "relationship_AR"}),
-        ("n5", "n13", {"label": "relationship_AR"}),
-        ("n4", "n14", {"label": "relationship_AR"}),
-        ("n13", "n0", {"label": "dependency"}),
-        ("n10", "n15", {"label": "relationship_AR"}),
-        ("n1", "n16", {"label": "dependency"}),
-        ("n19", "n25", {"label": "relationship_AR"}),
-        ("n5", "n21", {"label": "relationship_AR"}),
-        ("n21", "n23", {"label": "relationship_AR"}),
-        ("n19", "n24", {"label": "relationship_AR"}),
-        ("n4", "n19", {"label": "relationship_AR"}),
-    ]
-    
-
+    with graph_path.open('rb') as f:
+        data = pickle.load(f)
+    nodes, edges = data['nodes'], data['edges']
 
     att_features = ["freshness", "popularity", "speed", "severity"]
 
     eigencenter = EigenCent(nodes, edges, att_features, sever_score_map)
     # process node attribute values to right format
-    # eigencenter._quan_attrs()
-    eigencenter._covt_df()
+    eigencenter._quan_attrs()
+    fea_matrix_path = Path.cwd().parent.joinpath("data", "fea_matrix.csv")
+
+    eigencenter._covt_df(fea_matrix_path)
     
     # eigencenter._step_wise_reg(0.05, att_features)
     # analyse processed attributes
+    eigencenter._weight_ana()
     # eigencenter.ave_weight()
 
     # get the eigen centrality
     # print(eigencenter.cal_weighted_eigen_cent())
-    print(eigencenter.cal_weighted_eigen_cent_nx())
+    # print(eigencenter.cal_weighted_eigen_cent_nx())

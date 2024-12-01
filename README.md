@@ -72,6 +72,8 @@ python3 cau_dis.py
 - ![Distributed of Number of Packages per CVE (Top 100)](imgs/number_of_packages.png)
 
 
+
 - ![Releases by number of CVEs (Top 6)](imgs/releases_by_num_cve.png)
+
 
 - 

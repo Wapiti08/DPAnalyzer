@@ -138,12 +138,12 @@ class BetCent:
                             self.cve_check(node_id)}
 
         # Step 2: Add nodes with severity to the graph
-        for node_id, attrs in nodes_with_attrs.items():
-            G.add_node(node_id, **attrs)
+        for node_id, _ in nodes_with_attrs.items():
+            G.add_node(node_id)
 
-        for source, target, edge_attrs in self.edges:
+        for source, target, _ in self.edges:
             if source in G or target in G:
-                G.add_edge(source, target, **edge_attrs)
+                G.add_edge(source, target)
 
         # Step 6: Compute betweenness centrality
         betweenness_scores = nx.betweenness_centrality(G)

@@ -129,7 +129,10 @@ if __name__ == "__main__":
     # generate addvalues nodes
     # process node attribute values to right format
     eigencenter._quan_attrs()
-    eigencenter._covt_df()
+
+    # check whether feature matrix has been generated before
+    fea_matrix_path = Path.cwd().parent.joinpath("data", "fea_matrix.csv")
+    eigencenter._covt_df(fea_matrix_path)
     
     eigencenter._step_wise_reg(0.05, att_features)
     # analyse processed attributes
