@@ -72,8 +72,13 @@ python3 cau_dis.py
 - ![Distributed of Number of Packages per CVE (Top 100)](imgs/number_of_packages.png)
 
 
-
 - ![Releases by number of CVEs (Top 6)](imgs/releases_by_num_cve.png)
 
 
-- 
+- ![Top 10 Packages with Vulnerable Releases](imgs/top_10_degree_releases_with_cve.png)
+
+
+- ![Top 10 Packages with Highest Degree Centrality](imgs/top_10_degree_packs.png)
+
+
+- ![Top 10 Vulnerable Releases with Highest Out-degree](imgs/top_10_degree_releases_with_cve.png)
