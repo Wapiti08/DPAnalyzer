@@ -69,16 +69,35 @@ python3 cau_dis.py
 
 ## Statistical Analysis (extra material)
 
-- ![Distributed of Number of Packages per CVE (Top 100)](imgs/number_of_packages.png)
+- Distributed of Number of Packages per CVE (Top 100):
+    
+    ![Distributed of Number of Packages per CVE (Top 100)](imgs/number_of_packages.png)
 
 
-- ![Releases by number of CVEs (Top 6)](imgs/releases_by_num_cve.png)
+- Releases by number of CVEs (Top 6):
+
+    ![Releases by number of CVEs (Top 6)](imgs/releases_by_num_cve.png)
 
 
-- ![Top 10 Packages with Vulnerable Releases](imgs/top_10_degree_releases_with_cve.png)
+- Top 10 Packages with Vulnerable Releases: 
+    
+    ![Top 10 Packages with Vulnerable Releases](imgs/top_10_degree_releases_with_cve.png)
 
 
-- ![Top 10 Packages with Highest Degree Centrality](imgs/top_10_degree_packs.png)
+- Top 10 Packages with Highest Degree Centrality:   
+
+    ![Top 10 Packages with Highest Degree Centrality](imgs/top_10_degree_packs.png)
 
 
-- ![Top 10 Vulnerable Releases with Highest Out-degree](imgs/top_10_degree_releases_with_cve.png)
+- Top 10 Vulnerable Releases with Highest Out-degree:
+
+    ![Top 10 Vulnerable Releases with Highest Out-degree](imgs/top_10_degree_releases_with_cve.png)
+
+
+- Top 10 Nodes Heatmap:
+
+    ![Top 10 Nodes Heatmap](imgs/cent_heatmap.png)
+
+- Package by number of CVEs:
+
+    ![Package by number of CVEs](imgs/packages_by_num_cve.png)
