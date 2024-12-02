@@ -9,7 +9,7 @@ dependency propagation analyser on graphs
 
 - data: extracted other format data sets
 
-- exp: the exploration code on different files, code to call diverse centrality measurement
+- exp: the exploration code on different files, code to call diverse centrality measurement, notebooks to visualize data and perform stastical analysis
 
 - process: the code to call neo4j and export other formats of graphs, like graphml and csv
 
