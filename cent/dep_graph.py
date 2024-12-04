@@ -87,14 +87,7 @@ class DepGraph:
         for source, target, edge_att in self.edges:
             if edge_att['label'] == "addedValues":
                 self.addvalue_dict[source].append(target)
-        # source node is release, target node is addedvalue
-        self.addvalue_dict = defaultdict(list)
 
-        # Iterate over the edges and add the targets for each source where the label is 'addedValues'
-        for source, target, edge_att in self.edges:
-            if edge_att['label'] == "addedValues":
-                self.addvalue_dict[source].append(target)
-    
     def cve_check(self, target:str):
         # get attribute nodes
         node_list = self.addvalue_dict[target]
