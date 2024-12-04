@@ -92,6 +92,7 @@ class EigenCent:
         for node_id in node_list:
             node = self.nodes[node_id]
             if node['type'] == "POPULARITY_1_YEAR":
+                print('after checking popu', node)
                 return True
             else:
                 return False
@@ -150,81 +151,27 @@ class EigenCent:
         sum_seve_score = sum([self.severity_map.get(cve_str,0) for cve_str in cve_seve_str_list])
         return sum_seve_score
 
-    def _fresh_score(self,):
-        ''' assume the attribute of freshness in nodes is a dict type
-        
-        use simple min-max normalization to scale the value into [0,1]
-        '''
-        # prepare a list to save processed node data
-        processed_data = []
-
-        # extract freshness values and handle missing cases
-        for id, node in self.nodes.items():
-            if self.fresh_check(id):
-                # convert string to json
-                node_list = self.addvalue_dict[id]
-                for node_id in node_list:
-                    node = self.nodes[node_id]
-                    if node['type'] == "FRESHNESS":
-                        value_dict = self.str_to_json(node["value"])
-                        numberMissedRelease = int(value_dict["freshness"]["numberMissedRelease"])
-                        outdatedTimeInMs = int(value_dict["freshness"]["outdatedTimeInMs"]) / (1000 * 60 * 60 * 24)  # Convert to days
-            else:
-                numberMissedRelease = 0
-                outdatedTimeInMs = 0
-
-            # Add to processed data for DataFrame manipulation
-            processed_data.append(
-                {
-                    "numberMissedRelease": numberMissedRelease,
-                    "outdatedTimeDays": outdatedTimeInMs  # Renamed to indicate the unit
-                }
-            )
-
-        # create a dataframe
-        df = pd.DataFrame(processed_data)
-
-        # Map the freshness scores back to the original nodes
-        for i, (node_id, _) in enumerate(self.nodes.items()):
-            self.nodes[node_id]["freshness_missrelease"] = df.loc[i, 'numberMissedRelease']
-            self.nodes[node_id]["freshness_outdays"] = df.loc[i, 'outdatedTimeDays']
-
-
-    def _popu_proc(self,):
-        ''' process potential missing popularity
-        
-        '''
-        for id, node in self.nodes.items():
-            if self.popu_check(id):
-                node_list = self.addvalue_dict[id]
-                for node_id in node_list:
-                    node = self.nodes[node_id]
-                    if node['type'] == "POPULARITY_1_YEAR":
-                        self.nodes[id]["POPULARITY_1_YEAR"] = int(node["value"])
-            else:
-                self.nodes[id]["POPULARITY_1_YEAR"] = 0
-        
-    def _speed_proc(self,):
-        ''' process potential missing popularity
-        
-        '''
-        for id, node in self.nodes.items():
-            if self.speed_check(id):
-                node_list = self.addvalue_dict[id]
-                for node_id in node_list:
-                    node = self.nodes[node_id]
-                    if node['type'] == "SPEED":
-                        self.nodes[id]["SPEED"] = float(node["value"])
-            else:
-                self.nodes[id]["SPEED"] = 0
-    
     def _quan_attrs(self,):
         ''' initialize quantify attributes of nodes
         
         '''
-        self._fresh_score()
-        self._speed_proc()
-        self._popu_proc()
+        for id, node in self.nodes.items():
+            self.nodes[id]["popularity"] = 0
+            self.nodes[id]["freshness_missrelease"] = 0
+            self.nodes[id]["freshness_outdays"] = 0
+            self.nodes[id]["speed"] = 0.0
+            node_list = self.addvalue_dict[id]
+            for node_id in node_list:
+                node = self.nodes[node_id]
+                if node['type'] == "POPULARITY_1_YEAR":
+                    self.nodes[id]["popularity"] = int(node["value"])
+                elif node['type'] == "FRESHNESS":
+                    value_dict = self.str_to_json(node["value"])
+                    self.nodes[id]['freshness_missrelease'] = int(value_dict["freshness"]["numberMissedRelease"])
+                    self.nodes[id]['freshness_outdays'] = int(value_dict["freshness"]["outdatedTimeInMs"]) / (1000 * 60 * 60 * 24)  # Convert to days
+                elif node['type'] == "SPEED":
+                    self.nodes[id]["speed"] = float(node["value"])
+        
 
     def _covt_df(self, fea_matrix_path: Path):
         ''' covert nodes to node based dataframe
@@ -260,8 +207,8 @@ class EigenCent:
                     # replace dict freshness with freshness_score
                     data["freshness_missrelease"].append(node.get("freshness_missrelease", 0))
                     data["freshness_outdays"].append(node.get("freshness_outdays", 0))
-                    data["popularity"].append(node.get("POPULARITY_1_YEAR", 0))
-                    data["speed"].append(node.get("SPEED", 0))
+                    data["popularity"].append(node.get("popularity", 0))
+                    data["speed"].append(node.get("speed", 0))
                     severity_value = self._get_sum_severity(nid)
                     data["severity"].append(severity_value)
                     data["outdegree"].append(G.out_degree(nid) if G.has_node(nid) else 0)
@@ -280,10 +227,8 @@ class EigenCent:
         attributes = ["freshness_missrelease", "freshness_outdays", "popularity", "speed", "severity"]
         X = self.node_attr_df[attributes]
         y = self.node_attr_df["outdegree"]
-        # y = self.node_attr_df["degree"]
 
         return self.node_attr_df[attributes + ["outdegree"]].corr()
-        # return self.node_attr_df[attributes + ["degree"]].corr()
     
 
     def _step_wise_reg(self, reg_thres, sele_features):
@@ -376,59 +321,75 @@ class EigenCent:
         return self.node_attr_df[["weight"]]
 
 
-    def _weight_ana(self, corr_thres=0.1, reg_thres=0.05, scaling_factor=2776187 ):
-        ''' combine correlation and step-wise regression
-        to analyse different attributes with their contribution
+    # def _weight_ana(self, corr_thres=0.1, reg_thres=0.05, scaling_factor=1000000):
+    #     ''' combine correlation and step-wise regression
+    #     to analyse different attributes with their contribution
+        
+    #     '''
+    #     # perform correlation analysis for all features
+    #     corr_results = self._corr_ana()
+    #     logger.info(f"the correlation table is: {corr_results}")
+    #     sign_attrs = corr_results["outdegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
+
+    #     if "outdegree" in sign_attrs:
+    #         sign_attrs.remove("outdegree")
+    
+    #     logger.info(f"Left important features after correlation analyis are: {sign_attrs}")
+
+    #     # run step-wise regression using all features at once
+    #     df = self.node_attr_df[sign_attrs + ["outdegree"]]
+    #     sele_features = self._step_wise_reg(reg_thres, sign_attrs)
+    #     logger.info(f"Left important features after step-wise regression are: {sele_features}")
+
+
+    #     # Step 3: Calculate contributions and aggregate into a single 'weight' attribute
+    #     contribution_scores = {}
+    #     total_contribution = 0
+
+    #     for feature in sele_features:
+    #         X_single = df[feature]
+    #         X_single = sm.add_constant(X_single)
+    #         model = sm.OLS(self.node_attr_df["outdegree"], X_single).fit()
+    #         contribution = model.rsquared
+    #         contribution_scores[feature] = contribution
+    #         total_contribution += contribution
+
+    #     # Step 4: Convert individual contributions into a combined weight attribute
+    #     self.node_attr_df["weight"] = df[sele_features].apply(
+    #         lambda row: sum(row[feature] * (contribution_scores[feature] / total_contribution) for feature in sele_features),
+    #         axis=1
+    #     )
+
+    #     self.node_attr_df['weights'] = self.norm_weight(self.node_attr_df, scaling_factor)
+
+    def _weight_ana(self,):
+        ''' use correlation analysis to calculate node weight
         
         '''
         # perform correlation analysis for all features
         corr_results = self._corr_ana()
         logger.info(f"the correlation table is: {corr_results}")
-        sign_attrs = corr_results["outdegree"].abs().where(lambda x: x>=corr_thres).dropna().index.tolist()
-
-        if "outdegree" in sign_attrs:
-            sign_attrs.remove("outdegree")
     
-        logger.info(f"Left important features after correlation analyis are: {sign_attrs}")
+        features = ["freshness_missrelease", "freshness_outdays", "popularity", "speed", "severity"]
 
-        # run step-wise regression using all features at once
-        df = self.node_attr_df[sign_attrs + ["outdegree"]]
-        # create a new separate framework
-        # df = self.node_attr_df[sign_attrs + ["degree"]]
-        sele_features = self._step_wise_reg(reg_thres, sign_attrs)
-        logger.info(f"Left important features after step-wise regression are: {sele_features}")
-
-
-        # Step 3: Calculate contributions and aggregate into a single 'weight' attribute
-        contribution_scores = {}
-        total_contribution = 0
-
-        for feature in sele_features:
-            X_single = df[feature]
-            X_single = sm.add_constant(X_single)
-            model = sm.OLS(self.node_attr_df["outdegree"], X_single).fit()
-            # model = sm.OLS(df["degree"], X_single).fit()
-            contribution = model.rsquared
-            contribution_scores[feature] = contribution
-            total_contribution += contribution
-
-        # Step 4: Convert individual contributions into a combined weight attribute
-        self.node_attr_df["weight"] = df[sele_features].apply(
-            lambda row: sum(row[feature] * (contribution_scores[feature] / total_contribution) for feature in sele_features),
-            axis=1
-        )
-
-        self.node_attr_df['weights'] = self.norm_weight(self.node_attr_df, scaling_factor)
-
-
-    def norm_weight(self, node_attr_df: pd.DataFrame, scaling_factor):
-        # Step 5: Normalize the 'weight' to [0, 1] range
-        min_weight = node_attr_df["weight"].min()
-        max_weight = node_attr_df["weight"].max()
-        if max_weight > min_weight:
-            node_attr_df["weight"] = (node_attr_df["weight"] - min_weight) / (max_weight - min_weight) * scaling_factor
-        return node_attr_df[["weight"]]
-
+        # Initialize a new column for the weight calculation
+        self.node_attr_df["weight"] = 0.0
+    
+        # Iterate through each node in the dataframe
+        for index, row in self.node_attr_df.iterrows():
+            total_weight = 0.0
+            
+            # Loop through each pair of features
+            for feature in features:
+                # Check if both feature and its corresponding coefficient exist
+                if feature in row:
+                    # Multiply the corresponding feature value by its coefficient from the correlation table
+                    # Assuming corr_results is a DataFrame or dictionary where correlation values are accessible
+                    corr_value = corr_results.get(feature, {}).get(feature, 0)  # Get correlation coefficient for the feature
+                    total_weight += row[feature] * corr_value
+    
+            # Set the computed weight for the current node
+            self.node_attr_df.at[index, 'weight'] = total_weight
 
     def cal_weighted_eigen_cent_nx(self, ):
         
@@ -481,9 +442,8 @@ if __name__ == "__main__":
 
     eigencenter = EigenCent(nodes, edges, att_features, sever_score_map)
     # process node attribute values to right format
-    eigencenter._quan_attrs()
+    # eigencenter._quan_attrs()
     fea_matrix_path = Path.cwd().parent.joinpath("data", "fea_matrix.csv")
-
     eigencenter._covt_df(fea_matrix_path)
     
     # eigencenter._step_wise_reg(0.05, att_features)
@@ -493,4 +453,4 @@ if __name__ == "__main__":
 
     # get the eigen centrality
     # print(eigencenter.cal_weighted_eigen_cent())
-    # print(eigencenter.cal_weighted_eigen_cent_nx())
+    print(eigencenter.cal_weighted_eigen_cent_nx())

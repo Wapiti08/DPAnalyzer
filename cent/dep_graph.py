@@ -14,6 +14,7 @@ from functools import partial
 from tqdm import tqdm
 import os
 import uuid
+import json
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s]: %(message)s',
@@ -69,6 +70,14 @@ class DepGraph:
         self.nodes = nodes
         self.edges = edges
         self.get_addvalue_edges()
+
+    def str_to_json(self, escaped_json_str):
+        try:
+            clean_str = escaped_json_str.replace('\\"', '"')
+            return json.loads(clean_str)
+        except ValueError as e:
+            print(f"Error parsing JSON: {e}")
+            return None
 
     def get_addvalue_edges(self,):
         # source node is release, target node is addedvalue
