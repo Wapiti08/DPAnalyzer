@@ -161,8 +161,7 @@ class DepGraph:
                 timestamp_ranges[nid] = (timestamp, timestamps[i + 1])
         return timestamp_ranges
 
-    def filter_edges(self, software_to_releases):
-        filter_edges = []
+    def filter_edges(self,):
         for src, tgt, attr in self.edges:
             if attr['label'] in {'dependency', 'relationship_AR'}:
                 yield (src, tgt if attr['label'] == 'dependency' else tgt, src)
@@ -195,6 +194,7 @@ class DepGraph:
         
         # Split edges into chunks for parallel processing
         num_processes = cpu_count()
+        print('Available cpu count is', num_processes)
         chunk_size = 200000
         edge_chunks = self.chunk_generator(filter_edges, chunk_size)
         
@@ -204,7 +204,8 @@ class DepGraph:
                 pool.imap(
                     partial(process_wrapper,  # Pass the global function
                             release_nodes=release_nodes, time_ranges=time_ranges, nodes=nodes,
-                            rel_to_soft=rel_to_soft, get_timestamp=get_timestamp, is_release=is_release),
+                            rel_to_soft=rel_to_soft, get_timestamp=get_timestamp, 
+                            is_release=is_release),
                     edge_chunks
                 ),
                 desc="Parallel graph build",
@@ -218,33 +219,6 @@ class DepGraph:
             os.remove(subgraph_file)
         
         return combined_graph
-
-    # def dep_graph_build(self, filter_edges, time_ranges):
-    #     new_graph = nx.DiGraph()
-    #     # get release nodes
-    #     release_nodes = self.get_releases()
-    #     for nid, data in release_nodes.items():
-    #         new_graph.add_node(nid, **data)
-        
-    #     # add edges based on timestamp range conditions
-    #     for src, tgt in tqdm(filter_edges, desc="building new graph based on release dependencies", total=len(filter_edges)):
-    #         if self.is_release(self.nodes[src]):  # Only consider release nodes for the source
-    #             src_range = time_ranges.get(src, (0, float('inf')))  
-    #             if not self.is_release(self.nodes[tgt]):  # If the target is a software node
-    #                 # Get all releases for the target software
-    #                 if tgt in self.rel_to_soft():  # Check if the software has associated releases
-    #                     for release in self.rel_to_soft()[tgt]:  # Iterate through all releases of the software
-    #                         if release in release_nodes:  # Ensure the release exists in the graph
-    #                             tgt_timestamp = self.get_timestamp(self.nodes[release])  # Timestamp of the target release
-    #                             if src_range[0] <= tgt_timestamp < src_range[1]:  # Check if within range
-    #                                 new_graph.add_edge(src, release)  # Add edge between releases
-
-    #             elif self.is_release(self.nodes[tgt]):  # If the target is also a release
-    #                 tgt_timestamp = self.get_timestamp(self.nodes[tgt])  # Timestamp of the target release
-    #                 if src_range[0] <= tgt_timestamp < src_range[1]:
-    #                     new_graph.add_edge(src, tgt)  # Add direct edge between releases
-
-    #     return new_graph
 
     def graph_save(self, new_graph, graph_path):
         with graph_path.open('wb') as fw:
@@ -334,7 +308,7 @@ if __name__ == "__main__":
         time_rangs = depgraph.time_ranges(software_releases)
 
         # get the filtered edges
-        filter_edges = depgraph.filter_edges(software_releases)
+        filter_edges = depgraph.filter_edges()
 
         graph = depgraph.dep_graph_build_parallel(filter_edges, time_rangs)
         # save graph
