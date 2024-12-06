@@ -302,6 +302,7 @@ if __name__ == "__main__":
     dep_graph_path = Path.cwd().parent.joinpath("data", "dep_graph.pkl")
 
     depgraph = DepGraph(nodes, edges)
+    
     if not dep_graph_path.exists():
         release_to_software = depgraph.rel_to_soft()
         software_releases = depgraph.soft_to_rel(release_to_software)
@@ -313,5 +314,6 @@ if __name__ == "__main__":
         graph = depgraph.dep_graph_build_parallel(filter_edges, time_rangs)
         # save graph
         depgraph.graph_save(graph, dep_graph_path)
+
     else:
         G = depgraph.graph_load(dep_graph_path)
